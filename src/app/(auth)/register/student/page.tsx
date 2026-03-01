@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -14,7 +15,16 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import {
+  Building2,
+  Eye,
+  EyeOff,
+  GraduationCap,
+  Loader2,
+  Lock,
+  Mail,
+  User,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export default function RegisterStudentPage() {
@@ -25,6 +35,7 @@ export default function RegisterStudentPage() {
     password: "",
     collegeCode: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   function updateField(field: string, value: string) {
@@ -59,67 +70,103 @@ export default function RegisterStudentPage() {
   }
 
   return (
-    <Card className="shadow-sm">
+    <Card className="shadow-md border-border/60">
       <CardHeader className="text-center pb-4">
-        <CardTitle className="text-xl">Student Registration</CardTitle>
+        <div className="flex justify-center mb-3">
+          <Badge variant="outline" className="gap-1.5 px-3 py-1">
+            <GraduationCap className="size-3" aria-hidden="true" />
+            Student
+          </Badge>
+        </div>
+        <CardTitle className="text-2xl">Create account</CardTitle>
         <CardDescription>
-          Register as a student with your college code
+          Register with your institution-provided college code
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              name="name"
-              placeholder="Jane Smith"
-              autoComplete="name"
-              value={formData.name}
-              onChange={(e) => updateField("name", e.target.value)}
-              required
-            />
+            <div className="relative">
+              <User className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                id="name"
+                name="name"
+                placeholder="Jane Smith"
+                autoComplete="name"
+                className="pl-9"
+                value={formData.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              spellCheck={false}
-              value={formData.email}
-              onChange={(e) => updateField("email", e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                autoComplete="email"
+                spellCheck={false}
+                className="pl-9"
+                value={formData.email}
+                onChange={(e) => updateField("email", e.target.value)}
+                required
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="new-password"
-              type="password"
-              autoComplete="new-password"
-              value={formData.password}
-              onChange={(e) => updateField("password", e.target.value)}
-              required
-              minLength={8}
-            />
-            <p className="text-xs text-muted-foreground">Must be at least 8 characters</p>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                id="password"
+                name="new-password"
+                type={showPassword ? "text" : "password"}
+                autoComplete="new-password"
+                className="pl-9 pr-10"
+                value={formData.password}
+                onChange={(e) => updateField("password", e.target.value)}
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeOff className="size-4" aria-hidden="true" />
+                ) : (
+                  <Eye className="size-4" aria-hidden="true" />
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Must be at least 8 characters
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="collegeCode">College Code</Label>
-            <Input
-              id="collegeCode"
-              name="college-code"
-              placeholder="Provided by your institution"
-              autoComplete="off"
-              spellCheck={false}
-              value={formData.collegeCode}
-              onChange={(e) => updateField("collegeCode", e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Building2 className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                id="collegeCode"
+                name="college-code"
+                placeholder="Provided by your institution"
+                autoComplete="off"
+                spellCheck={false}
+                className="pl-9"
+                value={formData.collegeCode}
+                onChange={(e) => updateField("collegeCode", e.target.value)}
+                required
+              />
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
