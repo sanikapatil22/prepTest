@@ -9,7 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { format } from "date-fns";
-import type { Role } from "@/generated/prisma/client";
+import type { Prisma, Role } from "@/generated/prisma/client";
+import { RoleFilter } from "./role-filter";
+
+const validRoles: Role[] = ["SUPER_ADMIN", "COLLEGE_ADMIN", "STUDENT"];
 
 const roleBadgeVariant: Record<
   Role,
@@ -26,8 +29,18 @@ const roleLabel: Record<Role, string> = {
   STUDENT: "Student",
 };
 
-export default async function UsersListPage() {
+type PageProps = { searchParams: Promise<{ role?: string }> };
+
+export default async function UsersListPage({ searchParams }: PageProps) {
+  const { role } = await searchParams;
+
+  const where: Prisma.UserWhereInput = {};
+  if (role && validRoles.includes(role as Role)) {
+    where.role = role as Role;
+  }
+
   const users = await prisma.user.findMany({
+    where,
     include: {
       college: {
         select: {
@@ -41,11 +54,14 @@ export default async function UsersListPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Users</h1>
-        <p className="text-muted-foreground">
-          All registered users across the platform.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">
+            All registered users across the platform.
+          </p>
+        </div>
+        <RoleFilter />
       </div>
 
       <div className="rounded-md border">
