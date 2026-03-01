@@ -3,27 +3,59 @@ import { getSession } from "@/lib/auth-guard";
 import { isStudentEligible } from "@/lib/test-eligibility";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   ClipboardList,
   Clock,
   Play,
   RotateCcw,
   CheckCircle,
+  HelpCircle,
+  Building2,
+  ArrowRight,
 } from "lucide-react";
+
+const statusConfig = {
+  completed: {
+    label: "Completed",
+    dotClass: "bg-emerald-500",
+    bgClass: "bg-emerald-50 dark:bg-emerald-950/50",
+    textClass: "text-emerald-700 dark:text-emerald-400",
+  },
+  in_progress: {
+    label: "In Progress",
+    dotClass: "bg-amber-500",
+    bgClass: "bg-amber-50 dark:bg-amber-950/50",
+    textClass: "text-amber-700 dark:text-amber-400",
+  },
+  not_started: {
+    label: "Not Started",
+    dotClass: "bg-gray-400",
+    bgClass: "bg-gray-100 dark:bg-gray-800/50",
+    textClass: "text-gray-600 dark:text-gray-400",
+  },
+} as const;
+
+function TestStatusPill({ status }: { status: keyof typeof statusConfig }) {
+  const config = statusConfig[status];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        config.bgClass,
+        config.textClass
+      )}
+    >
+      <span className={cn("size-1.5 rounded-full", config.dotClass)} aria-hidden="true" />
+      {config.label}
+    </span>
+  );
+}
 
 export default async function StudentTestsPage({
   searchParams,
@@ -91,133 +123,118 @@ export default async function StudentTestsPage({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-balance">
-          {driveTitle ? `Tests - ${driveTitle}` : "Available Tests"}
+        <h1 className="text-2xl font-semibold tracking-tight">
+          {driveTitle ? `Tests \u2013 ${driveTitle}` : "Available Tests"}
         </h1>
-        <p className="text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           {driveTitle
             ? "Tests for this placement drive."
             : "All published tests available for you."}
         </p>
         {driveId && (
-          <Link href="/student/tests">
-            <Button variant="link" className="px-0 mt-1">
-              View all tests
-            </Button>
-          </Link>
+          <Button variant="link" size="sm" asChild className="px-0 mt-1 h-auto">
+            <Link href="/student/tests">View all tests</Link>
+          </Button>
         )}
       </div>
 
       {tests.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center">
-            <ClipboardList className="mx-auto size-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">No tests available</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              There are no published tests at the moment.
-            </p>
+          <CardContent className="flex flex-col items-center gap-4 py-16">
+            <div className="rounded-full bg-muted p-4">
+              <ClipboardList className="size-6 text-muted-foreground" aria-hidden="true" />
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-sm font-medium">No tests available</p>
+              <p className="text-sm text-muted-foreground">
+                There are no published tests at the moment.
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Test</TableHead>
-                  <TableHead>Drive / Company</TableHead>
-                  <TableHead className="text-center">Duration</TableHead>
-                  <TableHead className="text-center">Questions</TableHead>
-                  <TableHead className="text-center">Total Marks</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tests.map((test) => {
-                  const attempt = test.attempts[0] ?? null;
-                  const isInProgress = attempt?.status === "IN_PROGRESS";
-                  const isCompleted =
-                    attempt?.status === "SUBMITTED" ||
-                    attempt?.status === "TIMED_OUT";
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {tests.map((test) => {
+            const attempt = test.attempts[0] ?? null;
+            const isInProgress = attempt?.status === "IN_PROGRESS";
+            const isCompleted =
+              attempt?.status === "SUBMITTED" ||
+              attempt?.status === "TIMED_OUT";
+            const testStatus: keyof typeof statusConfig = isCompleted
+              ? "completed"
+              : isInProgress
+                ? "in_progress"
+                : "not_started";
 
-                  return (
-                    <TableRow key={test.id}>
-                      <TableCell>
-                        <div className="font-medium">{test.title}</div>
-                        {test.description && (
-                          <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                            {test.description}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">{test.drive.title}</div>
-                        {test.drive.companyName && (
-                          <p className="text-xs text-muted-foreground">
-                            {test.drive.companyName}
-                          </p>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex items-center justify-center gap-1 text-sm">
-                          <Clock className="size-3.5" />
-                          {test.durationMinutes} min
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {test._count.questions}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {test.totalMarks}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {isCompleted ? (
-                          <Badge variant="default" className="bg-success">
-                            <CheckCircle className="size-3 mr-1" />
-                            Completed
-                          </Badge>
-                        ) : isInProgress ? (
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                            <RotateCcw className="size-3 mr-1" />
-                            In Progress
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">Not Started</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isCompleted ? (
-                          <Link href={`/student/results/${attempt.id}`}>
-                            <Button variant="outline" size="sm">
-                              View Result
-                            </Button>
-                          </Link>
-                        ) : isInProgress ? (
-                          <Link href={`/test/${test.id}/attempt`}>
-                            <Button size="sm" variant="secondary">
-                              <RotateCcw className="size-3.5 mr-1" />
-                              Continue
-                            </Button>
-                          </Link>
-                        ) : (
-                          <Link href={`/test/${test.id}/attempt`}>
-                            <Button size="sm">
-                              <Play className="size-3.5 mr-1" />
-                              Start Test
-                            </Button>
-                          </Link>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            return (
+              <Card
+                key={test.id}
+                className="shadow-sm transition-[shadow,background-color] duration-200 hover:shadow-md hover:bg-accent/30"
+              >
+                <CardContent className="p-5 flex flex-col gap-4">
+                  {/* Header: title + status */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-medium leading-snug">
+                        {test.title}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Building2 className="size-3 shrink-0" aria-hidden="true" />
+                        <span className="truncate">
+                          {test.drive.title}
+                          {test.drive.companyName ? ` \u2013 ${test.drive.companyName}` : ""}
+                        </span>
+                      </div>
+                    </div>
+                    <TestStatusPill status={testStatus} />
+                  </div>
+
+                  {/* Meta row */}
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="size-3 shrink-0" aria-hidden="true" />
+                      <span className="tabular-nums">{test.durationMinutes} min</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <HelpCircle className="size-3 shrink-0" aria-hidden="true" />
+                      <span className="tabular-nums">{test._count.questions} {test._count.questions === 1 ? "question" : "questions"}</span>
+                    </div>
+                    <span className="tabular-nums">{test.totalMarks} marks</span>
+                  </div>
+
+                  {/* Action */}
+                  {isCompleted ? (
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <Link href={`/student/results/${attempt.id}`}>
+                        <CheckCircle className="size-4 mr-2" aria-hidden="true" />
+                        View Result
+                        <ArrowRight className="size-4 ml-auto" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  ) : isInProgress ? (
+                    <Button variant="secondary" size="sm" asChild className="w-full">
+                      <Link href={`/test/${test.id}/attempt`}>
+                        <RotateCcw className="size-4 mr-2" aria-hidden="true" />
+                        Continue Test
+                        <ArrowRight className="size-4 ml-auto" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Button size="sm" asChild className="w-full">
+                      <Link href={`/test/${test.id}/attempt`}>
+                        <Play className="size-4 mr-2" aria-hidden="true" />
+                        Start Test
+                        <ArrowRight className="size-4 ml-auto" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

@@ -70,23 +70,23 @@ export default function NewDrivePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2">
+        <Button variant="ghost" size="sm" asChild className="mb-3">
           <Link href="/college/drives">
-            <ArrowLeft />
+            <ArrowLeft className="size-4" aria-hidden="true" />
             Back to Drives
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight text-balance">Create Drive</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-semibold tracking-tight">Create Drive</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Create a new placement drive for your college.
         </p>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Drive Details</CardTitle>
+          <CardTitle className="text-base">Drive Details</CardTitle>
           <CardDescription>
             Fill in the information below to create a new placement drive.
           </CardDescription>

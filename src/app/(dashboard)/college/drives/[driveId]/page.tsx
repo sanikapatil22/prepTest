@@ -214,28 +214,28 @@ export default function DriveDetailPage() {
   if (!drive) return null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <Button variant="ghost" size="sm" asChild className="mb-2">
+        <Button variant="ghost" size="sm" asChild className="mb-3">
           <Link href="/college/drives">
-            <ArrowLeft />
+            <ArrowLeft className="size-4" aria-hidden="true" />
             Back to Drives
           </Link>
         </Button>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight text-balance min-w-0">{drive.title}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight min-w-0 truncate">{drive.title}</h1>
           <Badge variant={statusVariant[drive.status] ?? "secondary"}>
             {drive.status}
           </Badge>
         </div>
-        <p className="text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           Manage drive details and associated tests.
         </p>
       </div>
 
       <Card className="max-w-2xl">
         <CardHeader>
-          <CardTitle>Edit Drive</CardTitle>
+          <CardTitle className="text-base">Drive Details</CardTitle>
           <CardDescription>
             Update the drive details below and save your changes.
           </CardDescription>
@@ -352,40 +352,40 @@ export default function DriveDetailPage() {
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">Tests</h2>
-            <p className="text-sm text-muted-foreground">
+            <h2 className="text-base font-semibold tracking-tight">Tests</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
               Tests associated with this drive.
             </p>
           </div>
           <Button asChild>
             <Link href={`/college/drives/${params.driveId}/tests/new`}>
-              <Plus />
+              <Plus className="size-4" aria-hidden="true" />
               Add Test
             </Link>
           </Button>
         </div>
 
-        <div className="rounded-md border">
+        <div className="rounded-lg border">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead className="text-center">Total Marks</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Questions</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-4">Title</TableHead>
+                <TableHead className="px-4">Duration</TableHead>
+                <TableHead className="px-4 text-center">Marks</TableHead>
+                <TableHead className="px-4">Status</TableHead>
+                <TableHead className="px-4 text-center">Questions</TableHead>
+                <TableHead className="px-4 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tests.length === 0 ? (
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableCell
                     colSpan={6}
-                    className="h-24 text-center text-muted-foreground"
+                    className="h-32 text-center text-sm text-muted-foreground"
                   >
                     No tests yet. Add a test to this drive.
                   </TableCell>
@@ -393,28 +393,29 @@ export default function DriveDetailPage() {
               ) : (
                 tests.map((test) => (
                   <TableRow key={test.id}>
-                    <TableCell className="font-medium">{test.title}</TableCell>
-                    <TableCell>{test.durationMinutes} min</TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="px-4 font-medium">{test.title}</TableCell>
+                    <TableCell className="px-4 text-muted-foreground tabular-nums">{test.durationMinutes} min</TableCell>
+                    <TableCell className="px-4 text-center tabular-nums">
                       {test.totalMarks}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="px-4">
                       <Badge
                         variant={testStatusVariant[test.status] ?? "secondary"}
                       >
                         {test.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="px-4 text-center tabular-nums">
                       {test._count.questions}
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="px-4 text-right">
                       <Button variant="ghost" size="sm" asChild>
                         <Link
                           href={`/college/drives/${params.driveId}/tests/${test.id}`}
+                          aria-label={`View ${test.title}`}
                         >
                           View
-                          <ArrowRight />
+                          <ArrowRight className="size-4" aria-hidden="true" />
                         </Link>
                       </Button>
                     </TableCell>

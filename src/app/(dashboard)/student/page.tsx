@@ -110,16 +110,12 @@ export default async function StudentDashboardPage() {
       value: availableTests,
       icon: ClipboardList,
       description: "Tests waiting for you",
-      iconColor: "text-blue-600 dark:text-blue-400",
-      iconBg: "bg-blue-50 dark:bg-blue-950/50",
     },
     {
       title: "Completed Tests",
       value: completedAttempts,
       icon: CheckCircle,
       description: "Tests you have finished",
-      iconColor: "text-emerald-600 dark:text-emerald-400",
-      iconBg: "bg-emerald-50 dark:bg-emerald-950/50",
     },
     {
       title: "Average Score",
@@ -129,45 +125,43 @@ export default async function StudentDashboardPage() {
         allAttempts.length > 0
           ? `Across ${allAttempts.length} test${allAttempts.length !== 1 ? "s" : ""}`
           : "No tests completed yet",
-      iconColor: "text-amber-600 dark:text-amber-400",
-      iconBg: "bg-amber-50 dark:bg-amber-950/50",
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {user.name.split(" ")[0]}!
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Welcome back, {user.name.split(" ")[0]}
         </h1>
-        <p className="mt-1 text-muted-foreground">
+        <p className="mt-1 text-sm text-muted-foreground">
           Here is an overview of your test activity.
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-5 md:grid-cols-3">
         {stats.map((stat) => (
           <Card
             key={stat.title}
-            className="shadow-sm transition-shadow duration-200 hover:shadow-md"
+            className="shadow-sm transition-[shadow,background-color] duration-200 hover:shadow-md hover:bg-accent/40"
           >
-            <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+              <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className={`shrink-0 rounded-lg p-2 ${stat.iconBg}`}>
+              <div className="shrink-0 rounded-lg bg-primary/10 p-2">
                 <stat.icon
-                  className={`size-4 ${stat.iconColor}`}
+                  className="size-4 text-primary"
                   aria-hidden="true"
                 />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tight tabular-nums">
+              <div className="text-3xl font-semibold tracking-tight tabular-nums">
                 {stat.value}
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1.5 text-xs text-muted-foreground">
                 {stat.description}
               </p>
             </CardContent>

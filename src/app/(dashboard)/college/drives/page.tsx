@@ -3,17 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, ArrowRight, Briefcase } from "lucide-react";
+  Card,
+  CardContent,
+} from "@/components/ui/card";
+import { Plus, Briefcase, Building2, Calendar, FlaskConical, ArrowRight } from "lucide-react";
 import { DriveStatusBadge } from "@/components/drives/drive-status-badge";
 
-const dateFormatter = new Intl.DateTimeFormat("en", {
+const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
   day: "numeric",
   year: "numeric",
@@ -39,11 +35,11 @@ export default async function DrivesListPage() {
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight text-balance">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">
             Placement Drives
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground">
             Manage your college placement drives and associated tests.
           </p>
         </div>
@@ -55,83 +51,70 @@ export default async function DrivesListPage() {
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="px-4">Title</TableHead>
-              <TableHead className="px-4">Company</TableHead>
-              <TableHead className="px-4">Status</TableHead>
-              <TableHead className="px-4 text-center">Tests</TableHead>
-              <TableHead className="px-4">Start Date</TableHead>
-              <TableHead className="px-4">End Date</TableHead>
-              <TableHead className="px-4 text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {drives.length === 0 ? (
-              <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={7} className="h-48 text-center">
-                  <div className="flex flex-col items-center gap-3 py-6">
-                    <div className="rounded-full bg-muted p-3">
-                      <Briefcase
-                        className="size-6 text-muted-foreground"
-                        aria-hidden="true"
-                      />
+      {drives.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center gap-4 py-16">
+            <div className="rounded-full bg-muted p-4">
+              <Briefcase
+                className="size-6 text-muted-foreground"
+                aria-hidden="true"
+              />
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-sm font-medium">No drives yet</p>
+              <p className="text-sm text-muted-foreground">
+                Create your first placement drive to get started.
+              </p>
+            </div>
+            <Button asChild size="sm">
+              <Link href="/college/drives/new">
+                <Plus className="size-4" aria-hidden="true" />
+                Create Drive
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {drives.map((drive) => (
+            <Link
+              key={drive.id}
+              href={`/college/drives/${drive.id}`}
+              className="group block"
+            >
+              <Card className="h-full shadow-sm transition-[shadow,background-color] duration-200 group-hover:shadow-md group-hover:bg-accent/30">
+                <CardContent className="p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-sm font-medium group-hover:text-primary transition-colors">
+                        {drive.title}
+                      </h3>
+                      {drive.companyName && (
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Building2 className="size-3 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{drive.companyName}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">No drives yet</p>
-                      <p className="text-xs text-muted-foreground">
-                        Create your first placement drive to get started.
-                      </p>
-                    </div>
-                    <Button asChild size="sm" variant="outline" className="mt-1">
-                      <Link href="/college/drives/new">
-                        <Plus className="size-4" aria-hidden="true" />
-                        Create Drive
-                      </Link>
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ) : (
-              drives.map((drive) => (
-                <TableRow key={drive.id}>
-                  <TableCell className="px-4 font-medium">
-                    {drive.title}
-                  </TableCell>
-                  <TableCell className="px-4 text-muted-foreground">
-                    {drive.companyName ?? "—"}
-                  </TableCell>
-                  <TableCell className="px-4">
                     <DriveStatusBadge status={drive.status} />
-                  </TableCell>
-                  <TableCell className="px-4 text-center tabular-nums">
-                    {drive._count.tests}
-                  </TableCell>
-                  <TableCell className="px-4 tabular-nums text-muted-foreground">
-                    {formatDate(drive.startDate)}
-                  </TableCell>
-                  <TableCell className="px-4 tabular-nums text-muted-foreground">
-                    {formatDate(drive.endDate)}
-                  </TableCell>
-                  <TableCell className="px-4 text-right">
-                    <Button variant="ghost" size="sm" asChild>
-                      <Link
-                        href={`/college/drives/${drive.id}`}
-                        aria-label={`View ${drive.title}`}
-                      >
-                        View
-                        <ArrowRight className="size-4" aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </div>
+
+                  <div className="mt-4 flex items-center gap-4 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <FlaskConical className="size-3 shrink-0" aria-hidden="true" />
+                      <span className="tabular-nums">{drive._count.tests} {drive._count.tests === 1 ? "test" : "tests"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="size-3 shrink-0" aria-hidden="true" />
+                      <span className="tabular-nums">{formatDate(drive.startDate)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

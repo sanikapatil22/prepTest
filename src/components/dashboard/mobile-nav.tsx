@@ -64,13 +64,13 @@ export function MobileNav({ role }: { role: string }) {
           <span className="sr-only">Toggle navigation</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-64 p-0">
-        <div className="flex items-center h-16 px-6 border-b">
+      <SheetContent side="left" className="w-64 p-0 bg-sidebar text-sidebar-foreground border-sidebar-border">
+        <div className="flex items-center h-16 px-6 border-b border-sidebar-border">
           <Link href="/" className="flex items-center gap-2.5" onClick={() => setOpen(false)}>
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <Zap className="size-4 text-primary-foreground" aria-hidden="true" />
+            <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary">
+              <Zap className="size-4 text-sidebar-primary-foreground" aria-hidden="true" />
             </div>
-            <span className="text-lg font-bold tracking-tight">PrepZero</span>
+            <span className="text-lg font-bold tracking-tight text-sidebar-foreground">PrepZero</span>
           </Link>
         </div>
         <nav className="px-3 py-4 space-y-1">
@@ -87,13 +87,13 @@ export function MobileNav({ role }: { role: string }) {
                 href={item.href}
                 onClick={() => setOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                   isActive
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "bg-sidebar-accent text-sidebar-primary-foreground font-medium"
+                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 )}
               >
-                <item.icon className="size-4" aria-hidden="true" />
+                <item.icon className={cn("size-4 shrink-0", isActive && "text-sidebar-primary")} aria-hidden="true" />
                 {item.title}
               </Link>
             );

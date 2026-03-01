@@ -169,7 +169,7 @@ export default function RegisterStudentPage() {
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4">
+        <CardFooter className="flex flex-col gap-4 pt-2">
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
@@ -190,26 +190,24 @@ export default function RegisterStudentPage() {
             </div>
           </div>
 
-          <div className="text-center text-sm text-muted-foreground space-y-1.5">
-            <p>
-              Already have an account?{" "}
-              <Link
-                href="/login"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                Sign in
-              </Link>
-            </p>
-            <p>
-              College Admin?{" "}
-              <Link
-                href="/register"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                Register here
-              </Link>
-            </p>
-          </div>
+          <p className="text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Sign in
+            </Link>
+          </p>
+          <p className="text-center text-sm text-muted-foreground">
+            College Admin?{" "}
+            <Link
+              href="/register"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              Register here
+            </Link>
+          </p>
         </CardFooter>
       </form>
     </Card>

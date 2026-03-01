@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signOut } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export function Topbar({ user }: TopbarProps) {
   const role = roleMeta[user.role] ?? { label: user.role, variant: "secondary" as const };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-2 border-b bg-background px-4 md:px-6">
+    <header className="sticky top-0 z-40 flex h-16 items-center gap-2 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
       <MobileNav role={user.role} />
       <div className="flex-1" />
       <ThemeToggle />
@@ -92,7 +93,7 @@ export function Topbar({ user }: TopbarProps) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuItem asChild className="cursor-pointer">
-            <a
+            <Link
               href={
                 user.role === "SUPER_ADMIN"
                   ? "/admin/settings"
@@ -103,7 +104,7 @@ export function Topbar({ user }: TopbarProps) {
             >
               <Settings className="mr-2 size-4" aria-hidden="true" />
               Settings
-            </a>
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={handleSignOut}
