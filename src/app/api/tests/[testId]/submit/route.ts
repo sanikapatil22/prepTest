@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
 import { executeBatch } from "@/lib/judge0";
-import { CodingLanguage } from "@/generated/prisma";
+import { CodingLanguage } from "@/generated/prisma/client";
 
 type RouteParams = { params: Promise<{ testId: string }> };
 

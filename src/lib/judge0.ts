@@ -1,4 +1,4 @@
-import { CodingLanguage } from "@/generated/prisma";
+import { CodingLanguage } from "@/generated/prisma/client";
 
 const JUDGE0_API_URL = process.env.JUDGE0_API_URL!;
 const JUDGE0_API_KEY = process.env.JUDGE0_API_KEY;

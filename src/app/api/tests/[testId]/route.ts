@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
-import { TestStatus } from "@/generated/prisma";
+import { TestStatus } from "@/generated/prisma/client";
 
 const updateTestSchema = z.object({
   title: z.string().min(1).optional(),

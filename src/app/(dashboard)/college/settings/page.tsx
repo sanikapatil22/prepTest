@@ -11,6 +11,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Building2, Globe, Mail, Phone, MapPin, Hash } from "lucide-react";
+import { CollegeProfileSection } from "./profile-section";
 
 export default async function CollegeSettingsPage() {
   const session = await getSession();
@@ -70,7 +71,7 @@ export default async function CollegeSettingsPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">College Settings</h1>
         <p className="text-muted-foreground">
-          View your college information. Contact a super admin to make changes.
+          View your college information and manage your account.
         </p>
       </div>
 
@@ -112,6 +113,8 @@ export default async function CollegeSettingsPage() {
           ))}
         </CardContent>
       </Card>
+
+      <CollegeProfileSection />
     </div>
   );
 }

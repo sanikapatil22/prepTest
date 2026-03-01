@@ -56,10 +56,14 @@ model User {
   image         String?
   role          Role      @default(STUDENT)
   collegeId     String?
+  usn           String?   @unique
+  departmentId  String?
+  semester      Int?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  college       College?  @relation(fields: [collegeId], references: [id])
+  college       College?    @relation(fields: [collegeId], references: [id])
+  department    Department? @relation(fields: [departmentId], references: [id])
   sessions      Session[]
   accounts      Account[]
   testAttempts  TestAttempt[]
@@ -117,11 +121,15 @@ model College {
   contactEmail String?
   contactPhone String?
   isActive     Boolean  @default(true)
+  usnFormat     String?
+  usnDeptStart  Int?
+  usnDeptLength Int?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   users           User[]
   placementDrives PlacementDrive[]
+  departments     Department[]
 }
 
 model PlacementDrive {
@@ -224,6 +232,20 @@ model Answer {
   question Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
+}
+
+model Department {
+  id        String   @id @default(cuid())
+  collegeId String
+  name      String
+  code      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  college College @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  users   User[]
+
+  @@unique([collegeId, name])
 }
 
 model TestCase {

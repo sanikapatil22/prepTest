@@ -43,7 +43,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Loader2, Plus, Trash2, BarChart3 } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Trash2, BarChart3, Upload } from "lucide-react";
 
 interface TestData {
   id: string;
@@ -344,14 +344,24 @@ export default function TestDetailPage() {
               this test.
             </p>
           </div>
-          <Button asChild>
-            <Link
-              href={`/college/drives/${params.driveId}/tests/${params.testId}/questions/new`}
-            >
-              <Plus />
-              Add Question
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" asChild>
+              <Link
+                href={`/college/drives/${params.driveId}/tests/${params.testId}/questions/upload`}
+              >
+                <Upload />
+                Upload CSV
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link
+                href={`/college/drives/${params.driveId}/tests/${params.testId}/questions/new`}
+              >
+                <Plus />
+                Add Question
+              </Link>
+            </Button>
+          </div>
         </div>
 
         <div className="rounded-md border">

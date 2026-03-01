@@ -25,6 +25,26 @@ export const auth = betterAuth({
       },
     },
   },
+  databaseHooks: {
+    session: {
+      create: {
+        after: async (session) => {
+          const user = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { role: true },
+          });
+          if (user?.role === "STUDENT") {
+            await prisma.session.deleteMany({
+              where: {
+                userId: session.userId,
+                id: { not: session.id },
+              },
+            });
+          }
+        },
+      },
+    },
+  },
   plugins: [nextCookies()],
 });
 

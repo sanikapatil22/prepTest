@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
-import { QuestionType } from "@/generated/prisma";
+import { QuestionType } from "@/generated/prisma/client";
 
 const optionSchema = z.object({
   id: z.string().min(1),

@@ -3,15 +3,36 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
 
-const updateCollegeSchema = z.object({
-  name: z.string().min(1).optional(),
-  address: z.string().optional(),
-  website: z.string().url().optional().or(z.literal("")),
-  logoUrl: z.string().url().optional().or(z.literal("")),
-  contactEmail: z.string().email().optional().or(z.literal("")),
-  contactPhone: z.string().optional(),
-  isActive: z.boolean().optional(),
-});
+const updateCollegeSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    address: z.string().optional(),
+    website: z.string().url().optional().or(z.literal("")),
+    logoUrl: z.string().url().optional().or(z.literal("")),
+    contactEmail: z.string().email().optional().or(z.literal("")),
+    contactPhone: z.string().optional(),
+    isActive: z.boolean().optional(),
+    usnFormat: z.string().optional().nullable(),
+    usnDeptStart: z.number().int().min(0).optional().nullable(),
+    usnDeptLength: z.number().int().min(1).optional().nullable(),
+  })
+  .refine(
+    (data) => {
+      const fields = [data.usnFormat, data.usnDeptStart, data.usnDeptLength];
+      const setCount = fields.filter((f) => f != null).length;
+      return setCount === 0 || setCount === 3;
+    },
+    { message: "All USN fields (usnFormat, usnDeptStart, usnDeptLength) must be set together" }
+  )
+  .refine(
+    (data) => {
+      if (data.usnFormat && data.usnDeptStart != null && data.usnDeptLength != null) {
+        return data.usnDeptStart + data.usnDeptLength <= data.usnFormat.length;
+      }
+      return true;
+    },
+    { message: "Department code range exceeds USN format length" }
+  );
 
 type RouteParams = { params: Promise<{ collegeId: string }> };
 

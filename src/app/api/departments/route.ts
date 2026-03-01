@@ -2,18 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
-import { DriveStatus } from "@/generated/prisma/client";
 
-const createDriveSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  description: z.string().optional(),
-  companyName: z.string().optional(),
-  startDate: z.string().datetime().optional(),
-  endDate: z.string().datetime().optional(),
-  status: z.nativeEnum(DriveStatus).optional(),
+const createDepartmentSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  code: z.string().optional(),
 });
 
-// GET /api/drives — list drives (filtered by collegeId for college admin, all for super admin)
+// GET /api/departments — list departments for the college admin's college
 export async function GET() {
   try {
     const session = await getSession();
@@ -27,25 +22,25 @@ export async function GET() {
       collegeId: string | null;
     };
 
-    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
+    if (user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const where =
-      user.role === "SUPER_ADMIN" ? {} : { collegeId: user.collegeId! };
+    if (!user.collegeId) {
+      return NextResponse.json(
+        { error: "No college assigned to your account" },
+        { status: 400 }
+      );
+    }
 
-    const drives = await prisma.placementDrive.findMany({
-      where,
-      include: {
-        college: { select: { id: true, name: true, code: true } },
-        _count: { select: { tests: true } },
-      },
+    const departments = await prisma.department.findMany({
+      where: { collegeId: user.collegeId },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(drives);
+    return NextResponse.json(departments);
   } catch (error) {
-    console.error("GET /api/drives error:", error);
+    console.error("GET /api/departments error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
@@ -53,7 +48,7 @@ export async function GET() {
   }
 }
 
-// POST /api/drives — create a drive (college admin only, auto-set collegeId)
+// POST /api/departments — create a department
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
@@ -79,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const parsed = createDriveSchema.safeParse(body);
+    const parsed = createDepartmentSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { error: "Validation failed", details: parsed.error.flatten() },
@@ -87,25 +82,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const drive = await prisma.placementDrive.create({
+    const department = await prisma.department.create({
       data: {
         ...parsed.data,
-        startDate: parsed.data.startDate
-          ? new Date(parsed.data.startDate)
-          : undefined,
-        endDate: parsed.data.endDate
-          ? new Date(parsed.data.endDate)
-          : undefined,
         collegeId: user.collegeId,
-      },
-      include: {
-        college: { select: { id: true, name: true, code: true } },
       },
     });
 
-    return NextResponse.json(drive, { status: 201 });
+    return NextResponse.json(department, { status: 201 });
   } catch (error) {
-    console.error("POST /api/drives error:", error);
+    console.error("POST /api/departments error:", error);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
