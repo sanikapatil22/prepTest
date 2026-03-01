@@ -31,7 +31,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, ArrowRight, Loader2, Plus } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ArrowLeft, ArrowRight, Loader2, Plus, Trash2 } from "lucide-react";
 
 interface DriveData {
   id: string;
@@ -77,6 +88,7 @@ export default function DriveDetailPage() {
   const [tests, setTests] = useState<TestData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -161,6 +173,30 @@ export default function DriveDetailPage() {
       );
     } finally {
       setIsSaving(false);
+    }
+  }
+
+  async function handleDeleteDrive() {
+    setIsDeleting(true);
+
+    try {
+      const res = await fetch(`/api/drives/${params.driveId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete drive");
+      }
+
+      toast.success("Drive deleted successfully");
+      router.push("/college/drives");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
+    } finally {
+      setIsDeleting(false);
     }
   }
 
@@ -280,6 +316,34 @@ export default function DriveDetailPage() {
               <Button type="button" variant="outline" asChild>
                 <Link href="/college/drives">Cancel</Link>
               </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive">
+                    <Trash2 />
+                    Delete Drive
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Drive</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete this drive and all its tests,
+                      questions, and attempts. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteDrive}
+                      disabled={isDeleting}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeleting && <Loader2 className="animate-spin" />}
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </form>
         </CardContent>

@@ -59,6 +59,7 @@ model User {
   usn           String?   @unique
   departmentId  String?
   semester      Int?
+  isGraduated   Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -161,6 +162,9 @@ model Test {
   status           TestStatus @default(DRAFT)
   startTime        DateTime?
   endTime          DateTime?
+  allowedDepartmentIds  Json?    // string[] of department IDs
+  allowedSemesters      Json?    // number[] of semesters (1-8)
+  allowedStudentIds     Json?    // string[] of specific student IDs
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 

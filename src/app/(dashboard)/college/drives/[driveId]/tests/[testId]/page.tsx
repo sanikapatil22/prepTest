@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -43,7 +43,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ArrowLeft, Loader2, Plus, Trash2, BarChart3, Upload } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ArrowLeft, Loader2, Plus, Trash2, BarChart3, Upload, Eye, X, Search, Users } from "lucide-react";
 
 interface TestData {
   id: string;
@@ -56,6 +57,9 @@ interface TestData {
   passingMarks: number;
   shuffleQuestions: boolean;
   status: string;
+  allowedDepartmentIds: string[] | null;
+  allowedSemesters: number[] | null;
+  allowedStudentIds: string[] | null;
   drive: {
     id: string;
     title: string;
@@ -63,6 +67,19 @@ interface TestData {
     college: { id: string; name: string };
   };
   _count: { questions: number; attempts: number };
+}
+
+interface DepartmentData {
+  id: string;
+  name: string;
+  code: string | null;
+}
+
+interface StudentSearchResult {
+  id: string;
+  name: string;
+  usn: string | null;
+  department: { name: string } | null;
 }
 
 interface QuestionData {
@@ -90,6 +107,7 @@ export default function TestDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeletingTest, setIsDeletingTest] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -99,12 +117,24 @@ export default function TestDetailPage() {
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [status, setStatus] = useState("DRAFT");
 
+  // Eligibility state
+  const [departments, setDepartments] = useState<DepartmentData[]>([]);
+  const [allowedDepartmentIds, setAllowedDepartmentIds] = useState<string[]>([]);
+  const [allowedSemesters, setAllowedSemesters] = useState<number[]>([]);
+  const [allowedStudentIds, setAllowedStudentIds] = useState<string[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<StudentSearchResult[]>([]);
+  const [studentSearch, setStudentSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<StudentSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [eligibleCount, setEligibleCount] = useState<number | null>(null);
+
   useEffect(() => {
     async function fetchData() {
       try {
-        const [testRes, questionsRes] = await Promise.all([
+        const [testRes, questionsRes, deptRes] = await Promise.all([
           fetch(`/api/tests/${params.testId}`),
           fetch(`/api/tests/${params.testId}/questions`),
+          fetch(`/api/departments`),
         ]);
 
         if (!testRes.ok) throw new Error("Failed to fetch test");
@@ -119,9 +149,31 @@ export default function TestDetailPage() {
         setShuffleQuestions(testData.shuffleQuestions);
         setStatus(testData.status);
 
+        // Initialize eligibility state
+        setAllowedDepartmentIds(testData.allowedDepartmentIds ?? []);
+        setAllowedSemesters(testData.allowedSemesters ?? []);
+        const studentIds = testData.allowedStudentIds ?? [];
+        setAllowedStudentIds(studentIds);
+
+        // Fetch details for pre-selected students
+        if (studentIds.length > 0) {
+          const studentsRes = await fetch(`/api/students`);
+          if (studentsRes.ok) {
+            const allStudents: StudentSearchResult[] = await studentsRes.json();
+            setSelectedStudents(
+              allStudents.filter((s) => studentIds.includes(s.id))
+            );
+          }
+        }
+
         if (questionsRes.ok) {
           const questionsData: QuestionData[] = await questionsRes.json();
           setQuestions(questionsData);
+        }
+
+        if (deptRes.ok) {
+          const deptData: DepartmentData[] = await deptRes.json();
+          setDepartments(deptData);
         }
       } catch (error) {
         toast.error(
@@ -152,6 +204,9 @@ export default function TestDetailPage() {
           passingMarks,
           shuffleQuestions,
           status,
+          allowedDepartmentIds: allowedDepartmentIds.length > 0 ? allowedDepartmentIds : null,
+          allowedSemesters: allowedSemesters.length > 0 ? allowedSemesters : null,
+          allowedStudentIds: allowedStudentIds.length > 0 ? allowedStudentIds : null,
         }),
       });
 
@@ -194,6 +249,89 @@ export default function TestDetailPage() {
       setDeletingId(null);
     }
   }
+
+  async function handleDeleteTest() {
+    setIsDeletingTest(true);
+
+    try {
+      const res = await fetch(`/api/tests/${params.testId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete test");
+      }
+
+      toast.success("Test deleted successfully");
+      router.push(`/college/drives/${params.driveId}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
+    } finally {
+      setIsDeletingTest(false);
+    }
+  }
+
+  // Debounced student search
+  const searchStudents = useCallback(async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const res = await fetch(`/api/students?search=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data: StudentSearchResult[] = await res.json();
+        // Exclude already-selected students
+        setSearchResults(data.filter((s) => !allowedStudentIds.includes(s.id)));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setIsSearching(false);
+    }
+  }, [allowedStudentIds]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => searchStudents(studentSearch), 300);
+    return () => clearTimeout(timer);
+  }, [studentSearch, searchStudents]);
+
+  // Fetch eligible count when eligibility criteria change
+  useEffect(() => {
+    async function fetchCount() {
+      try {
+        const params = new URLSearchParams();
+        // Count students matching criteria
+        const res = await fetch(`/api/students`);
+        if (!res.ok) return;
+        const allStudents: { id: string; department: { id: string } | null; semester: number | null }[] = await res.json();
+
+        const deptIds = allowedDepartmentIds;
+        const sems = allowedSemesters;
+        const stuIds = allowedStudentIds;
+
+        if (deptIds.length === 0 && sems.length === 0 && stuIds.length === 0) {
+          setEligibleCount(allStudents.length);
+          return;
+        }
+
+        const count = allStudents.filter((s) => {
+          if (stuIds.includes(s.id)) return true;
+          const deptMatch = deptIds.length === 0 || (s.department?.id != null && deptIds.includes(s.department.id));
+          const semMatch = sems.length === 0 || (s.semester != null && sems.includes(s.semester));
+          return deptMatch && semMatch;
+        }).length;
+        setEligibleCount(count);
+      } catch {
+        // ignore
+      }
+    }
+    if (!isLoading) fetchCount();
+  }, [allowedDepartmentIds, allowedSemesters, allowedStudentIds, isLoading]);
 
   if (isLoading) {
     return (
@@ -330,8 +468,207 @@ export default function TestDetailPage() {
                   View Results
                 </Link>
               </Button>
+              <Button type="button" variant="outline" asChild>
+                <Link
+                  href={`/college/drives/${params.driveId}/tests/${params.testId}/monitor`}
+                >
+                  <Eye />
+                  Live Monitor
+                </Link>
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button type="button" variant="destructive">
+                    <Trash2 />
+                    Delete Test
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Test</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete this test and all its
+                      questions and attempts. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteTest}
+                      disabled={isDeletingTest}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      {isDeletingTest && <Loader2 className="animate-spin" />}
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </form>
+        </CardContent>
+      </Card>
+
+      {/* Eligibility Card */}
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="size-5" />
+            Eligibility
+          </CardTitle>
+          <CardDescription>
+            Restrict which students can take this test. Leave all empty to allow all students.
+            {eligibleCount !== null && (
+              <span className="ml-2 font-medium text-foreground">
+                ({eligibleCount} student{eligibleCount !== 1 ? "s" : ""} eligible)
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Departments */}
+          <div className="space-y-3">
+            <Label>Departments</Label>
+            {departments.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No departments configured.</p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {departments.map((dept) => (
+                  <label
+                    key={dept.id}
+                    className="flex items-center gap-2 text-sm cursor-pointer"
+                  >
+                    <Checkbox
+                      checked={allowedDepartmentIds.includes(dept.id)}
+                      onCheckedChange={(checked) => {
+                        setAllowedDepartmentIds((prev) =>
+                          checked
+                            ? [...prev, dept.id]
+                            : prev.filter((id) => id !== dept.id)
+                        );
+                      }}
+                    />
+                    {dept.name}
+                    {dept.code && (
+                      <span className="text-muted-foreground">({dept.code})</span>
+                    )}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Semesters */}
+          <div className="space-y-3">
+            <Label>Semesters</Label>
+            <div className="flex flex-wrap gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                <label
+                  key={sem}
+                  className="flex items-center gap-1.5 text-sm cursor-pointer"
+                >
+                  <Checkbox
+                    checked={allowedSemesters.includes(sem)}
+                    onCheckedChange={(checked) => {
+                      setAllowedSemesters((prev) =>
+                        checked
+                          ? [...prev, sem]
+                          : prev.filter((s) => s !== sem)
+                      );
+                    }}
+                  />
+                  Sem {sem}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Specific Students */}
+          <div className="space-y-3">
+            <Label>Specific Students</Label>
+            <p className="text-xs text-muted-foreground">
+              These students are always eligible regardless of department or semester filters.
+            </p>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or USN..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            {/* Search Results Dropdown */}
+            {studentSearch && (
+              <div className="rounded-md border max-h-48 overflow-y-auto">
+                {isSearching ? (
+                  <div className="p-3 text-sm text-muted-foreground text-center">
+                    <Loader2 className="size-4 animate-spin inline mr-2" />
+                    Searching...
+                  </div>
+                ) : searchResults.length === 0 ? (
+                  <div className="p-3 text-sm text-muted-foreground text-center">
+                    No students found.
+                  </div>
+                ) : (
+                  searchResults.map((student) => (
+                    <button
+                      key={student.id}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between"
+                      onClick={() => {
+                        setAllowedStudentIds((prev) => [...prev, student.id]);
+                        setSelectedStudents((prev) => [...prev, student]);
+                        setStudentSearch("");
+                        setSearchResults([]);
+                      }}
+                    >
+                      <span>
+                        {student.name}
+                        {student.usn && (
+                          <span className="text-muted-foreground ml-2">
+                            {student.usn}
+                          </span>
+                        )}
+                      </span>
+                      {student.department && (
+                        <span className="text-xs text-muted-foreground">
+                          {student.department.name}
+                        </span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* Selected Students */}
+            {selectedStudents.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {selectedStudents.map((student) => (
+                  <Badge key={student.id} variant="secondary" className="gap-1">
+                    {student.name}
+                    {student.usn && ` (${student.usn})`}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAllowedStudentIds((prev) =>
+                          prev.filter((id) => id !== student.id)
+                        );
+                        setSelectedStudents((prev) =>
+                          prev.filter((s) => s.id !== student.id)
+                        );
+                      }}
+                      className="ml-1 hover:text-destructive"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
 

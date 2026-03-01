@@ -15,6 +15,9 @@ const createTestSchema = z.object({
   status: z.nativeEnum(TestStatus).optional(),
   startTime: z.string().datetime().optional(),
   endTime: z.string().datetime().optional(),
+  allowedDepartmentIds: z.array(z.string()).nullable().optional(),
+  allowedSemesters: z.array(z.number().int().min(1).max(8)).nullable().optional(),
+  allowedStudentIds: z.array(z.string()).nullable().optional(),
 });
 
 // GET /api/tests — list tests (optionally filter by driveId query param)
@@ -122,15 +125,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { allowedDepartmentIds, allowedSemesters, allowedStudentIds, ...rest } = parsed.data;
     const test = await prisma.test.create({
       data: {
-        ...parsed.data,
-        startTime: parsed.data.startTime
-          ? new Date(parsed.data.startTime)
-          : undefined,
-        endTime: parsed.data.endTime
-          ? new Date(parsed.data.endTime)
-          : undefined,
+        ...rest,
+        startTime: rest.startTime ? new Date(rest.startTime) : undefined,
+        endTime: rest.endTime ? new Date(rest.endTime) : undefined,
+        ...(allowedDepartmentIds !== undefined && {
+          allowedDepartmentIds: allowedDepartmentIds ?? undefined,
+        }),
+        ...(allowedSemesters !== undefined && {
+          allowedSemesters: allowedSemesters ?? undefined,
+        }),
+        ...(allowedStudentIds !== undefined && {
+          allowedStudentIds: allowedStudentIds ?? undefined,
+        }),
       },
       include: {
         drive: {

@@ -19,6 +19,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ArrowLeft } from "lucide-react";
+import { RetakeButton } from "./retake-button";
 import { format } from "date-fns";
 
 export default async function TestResultsPage({
@@ -98,13 +99,14 @@ export default async function TestResultsPage({
               <TableHead>Submitted At</TableHead>
               <TableHead className="text-center">Violations</TableHead>
               <TableHead>Result</TableHead>
+              <TableHead>Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {attempts.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={10}
+                  colSpan={11}
                   className="h-24 text-center text-muted-foreground"
                 >
                   No attempts yet. Students have not taken this test.
@@ -206,6 +208,15 @@ export default async function TestResultsPage({
                         <Badge variant="destructive">Fail</Badge>
                       ) : (
                         <Badge variant="outline">N/A</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(attempt.status === "SUBMITTED" ||
+                        attempt.status === "TIMED_OUT") && (
+                        <RetakeButton
+                          attemptId={attempt.id}
+                          studentName={attempt.student.name}
+                        />
                       )}
                     </TableCell>
                   </TableRow>

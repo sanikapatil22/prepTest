@@ -107,3 +107,69 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     );
   }
 }
+
+// DELETE /api/attempts/[attemptId] — allow retake by deleting a completed attempt
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user as {
+      id: string;
+      role: string;
+      collegeId: string | null;
+    };
+
+    if (user.role === "STUDENT") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { attemptId } = await params;
+
+    const attempt = await prisma.testAttempt.findUnique({
+      where: { id: attemptId },
+      include: {
+        test: {
+          include: {
+            drive: {
+              select: { collegeId: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!attempt) {
+      return NextResponse.json(
+        { error: "Attempt not found" },
+        { status: 404 }
+      );
+    }
+
+    if (
+      user.role === "COLLEGE_ADMIN" &&
+      attempt.test.drive.collegeId !== user.collegeId
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (attempt.status === "IN_PROGRESS") {
+      return NextResponse.json(
+        { error: "Cannot delete an in-progress attempt. Wait for submission or timeout." },
+        { status: 400 }
+      );
+    }
+
+    await prisma.testAttempt.delete({ where: { id: attemptId } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/attempts/[attemptId] error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

@@ -6,10 +6,9 @@ export interface CSVStudent {
   usn: string;
   deptCode: string;
   semester: number;
-  password: string;
 }
 
-const EXPECTED_HEADERS = ["name", "email", "usn", "semester", "password"];
+const EXPECTED_HEADERS = ["name", "email", "usn", "semester"];
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -60,7 +59,6 @@ export function parseStudentsCSV(
     const email = row[colIndex("email")]?.trim().toLowerCase();
     const usn = row[colIndex("usn")]?.trim().toUpperCase();
     const semesterRaw = row[colIndex("semester")]?.trim();
-    const password = row[colIndex("password")]?.trim();
 
     if (!name) {
       errors.push({ row: rowNum, message: "Name is empty" });
@@ -109,19 +107,11 @@ export function parseStudentsCSV(
       continue;
     }
 
-    if (!password || password.length < 8) {
-      errors.push({
-        row: rowNum,
-        message: "Password must be at least 8 characters",
-      });
-      continue;
-    }
-
     const deptCode = usn.substring(deptStart, deptStart + deptLength);
 
     seenEmails.add(email);
     seenUsns.add(usn);
-    students.push({ name, email, usn, deptCode, semester, password });
+    students.push({ name, email, usn, deptCode, semester });
   }
 
   return { students, errors };
@@ -132,9 +122,9 @@ export function parseStudentsCSV(
  */
 export function generateStudentCSVTemplate(usnFormat: string): string {
   const header = EXPECTED_HEADERS.join(",");
-  const example1 = `John Doe,john@example.com,${usnFormat},3,dept@2024`;
+  const example1 = `John Doe,john@example.com,${usnFormat},3`;
   // Create a second example with a slightly different USN
   const usn2 = usnFormat.slice(0, -3) + "002";
-  const example2 = `Jane Smith,jane@example.com,${usn2},5,dept@2024`;
+  const example2 = `Jane Smith,jane@example.com,${usn2},5`;
   return `${header}\n${example1}\n${example2}\n`;
 }

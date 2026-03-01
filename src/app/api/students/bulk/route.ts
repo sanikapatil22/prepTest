@@ -50,6 +50,96 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+const bulkPromoteSchema = z.object({
+  studentIds: z.array(z.string()).min(1),
+});
+
+// PATCH /api/students/bulk — bulk promote (increment semester) for students (COLLEGE_ADMIN only)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = session.user as { id: string; role: string; collegeId: string };
+    if (user.role !== "COLLEGE_ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const parsed = bulkPromoteSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Validation failed", details: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { studentIds } = parsed.data;
+
+    // Fetch eligible students: belong to this college, STUDENT role, not graduated, semester set
+    const students = await prisma.user.findMany({
+      where: {
+        id: { in: studentIds },
+        collegeId: user.collegeId,
+        role: "STUDENT",
+        isGraduated: false,
+        semester: { not: null },
+      },
+      select: { id: true, semester: true },
+    });
+
+    if (students.length === 0) {
+      return NextResponse.json(
+        { error: "No eligible students found to promote" },
+        { status: 400 }
+      );
+    }
+
+    const toGraduate = students.filter((s) => s.semester === 8);
+    const toIncrement = students.filter((s) => s.semester !== null && s.semester! < 8);
+
+    let promoted = 0;
+    let graduated = 0;
+
+    // Increment semester for students at sem 1-7, grouped by current semester
+    if (toIncrement.length > 0) {
+      const bySemester = new Map<number, string[]>();
+      for (const s of toIncrement) {
+        const sem = s.semester!;
+        if (!bySemester.has(sem)) bySemester.set(sem, []);
+        bySemester.get(sem)!.push(s.id);
+      }
+
+      for (const [currentSem, ids] of bySemester) {
+        const result = await prisma.user.updateMany({
+          where: { id: { in: ids } },
+          data: { semester: currentSem + 1 },
+        });
+        promoted += result.count;
+      }
+    }
+
+    // Graduate semester 8 students
+    if (toGraduate.length > 0) {
+      const result = await prisma.user.updateMany({
+        where: { id: { in: toGraduate.map((s) => s.id) } },
+        data: { isGraduated: true },
+      });
+      graduated = result.count;
+    }
+
+    return NextResponse.json({ promoted, graduated });
+  } catch (error) {
+    console.error("PATCH /api/students/bulk error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+
 const bulkStudentSchema = z.object({
   students: z.array(
     z.object({
@@ -58,9 +148,9 @@ const bulkStudentSchema = z.object({
       usn: z.string().min(1),
       deptCode: z.string().min(1),
       semester: z.number().int().min(1).max(8),
-      password: z.string().min(8),
     })
   ),
+  passwords: z.record(z.string(), z.string().min(8)),
 });
 
 // POST /api/students/bulk — bulk create student accounts (COLLEGE_ADMIN only)
@@ -85,7 +175,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { students } = parsed.data;
+    const { students, passwords } = parsed.data;
     const collegeId = user.collegeId;
 
     // Fetch college's departments
@@ -125,11 +215,10 @@ export async function POST(request: NextRequest) {
     let skipped = 0;
     const errors: string[] = [];
 
-    // Group passwords by unique value to hash each only once
-    const uniquePasswords = [...new Set(students.map((s) => s.password))];
+    // Hash unique passwords from the passwords record
     const hashedPasswords = new Map<string, string>();
-    for (const pw of uniquePasswords) {
-      hashedPasswords.set(pw, await hashPassword(pw));
+    for (const [key, pw] of Object.entries(passwords)) {
+      hashedPasswords.set(key, await hashPassword(pw));
     }
 
     for (const student of students) {
@@ -155,6 +244,15 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
+      const passwordKey = `${deptCode}:${student.semester}`;
+      const hashedPw = hashedPasswords.get(passwordKey);
+      if (!hashedPw) {
+        errors.push(
+          `No password provided for group "${student.deptCode}:${student.semester}"`
+        );
+        continue;
+      }
+
       try {
         await prisma.$transaction(async (tx) => {
           const newUser = await tx.user.create({
@@ -175,7 +273,7 @@ export async function POST(request: NextRequest) {
               userId: newUser.id,
               accountId: newUser.id,
               providerId: "credential",
-              password: hashedPasswords.get(student.password)!,
+              password: hashedPw,
             },
           });
         });

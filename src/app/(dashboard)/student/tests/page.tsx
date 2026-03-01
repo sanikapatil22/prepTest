@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
+import { isStudentEligible } from "@/lib/test-eligibility";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -53,21 +54,31 @@ export default async function StudentTestsPage({
     whereClause.driveId = driveId;
   }
 
-  const tests = await prisma.test.findMany({
-    where: whereClause,
-    include: {
-      drive: {
-        select: { id: true, title: true, companyName: true },
+  const [allTests, studentData] = await Promise.all([
+    prisma.test.findMany({
+      where: whereClause,
+      include: {
+        drive: {
+          select: { id: true, title: true, companyName: true },
+        },
+        _count: { select: { questions: true } },
+        attempts: {
+          where: { studentId: user.id },
+          select: { id: true, status: true, percentage: true },
+          take: 1,
+        },
       },
-      _count: { select: { questions: true } },
-      attempts: {
-        where: { studentId: user.id },
-        select: { id: true, status: true, percentage: true },
-        take: 1,
-      },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, departmentId: true, semester: true },
+    }),
+  ]);
+
+  const tests = studentData
+    ? allTests.filter((test) => isStudentEligible(test, studentData))
+    : allTests;
 
   // Optionally get the drive name if filtering
   let driveTitle: string | null = null;

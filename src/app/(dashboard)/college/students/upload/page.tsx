@@ -21,7 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, Download, Loader2, Upload, AlertTriangle } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { ArrowLeft, Download, Loader2, Upload, AlertTriangle, ArrowRight } from "lucide-react";
 import {
   parseStudentsCSV,
   generateStudentCSVTemplate,
@@ -29,7 +31,7 @@ import {
 } from "@/lib/student-csv-parser";
 import type { CSVParseError } from "@/lib/csv-parser";
 
-type Phase = "loading" | "select" | "preview" | "uploading";
+type Phase = "loading" | "select" | "preview" | "passwords" | "uploading";
 
 interface UsnStructure {
   configured: boolean;
@@ -45,6 +47,7 @@ export default function StudentUploadPage() {
   const [usnStructure, setUsnStructure] = useState<UsnStructure | null>(null);
   const [students, setStudents] = useState<CSVStudent[]>([]);
   const [errors, setErrors] = useState<CSVParseError[]>([]);
+  const [groupPasswords, setGroupPasswords] = useState<Record<string, string>>({});
 
   useEffect(() => {
     async function fetchUsnStructure() {
@@ -85,8 +88,50 @@ export default function StudentUploadPage() {
       usnStructure.usnDeptStart!,
       usnStructure.usnDeptLength!
     );
-    setStudents(result.students);
-    setErrors(result.errors);
+
+    const allErrors = [...result.errors];
+    let validStudents = result.students;
+
+    // Check for existing USN+semester conflicts in the database
+    if (result.students.length > 0) {
+      try {
+        const res = await fetch("/api/students/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            usns: result.students.map((s) => s.usn),
+          }),
+        });
+
+        if (res.ok) {
+          const { conflicts } = (await res.json()) as {
+            conflicts: Record<string, number | null>;
+          };
+
+          if (Object.keys(conflicts).length > 0) {
+            validStudents = result.students.filter((s) => {
+              const existingSem = conflicts[s.usn.toUpperCase()];
+              if (existingSem !== undefined) {
+                allErrors.push({
+                  row: 0,
+                  message:
+                    existingSem !== null
+                      ? `USN "${s.usn}" already exists (Semester ${existingSem})`
+                      : `USN "${s.usn}" already exists`,
+                });
+                return false;
+              }
+              return true;
+            });
+          }
+        }
+      } catch {
+        // Validation fetch failed — continue without pre-check
+      }
+    }
+
+    setStudents(validStudents);
+    setErrors(allErrors);
     setPhase("preview");
   }
 
@@ -98,7 +143,7 @@ export default function StudentUploadPage() {
       const res = await fetch("/api/students/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ students }),
+        body: JSON.stringify({ students, passwords: groupPasswords }),
       });
 
       if (!res.ok) {
@@ -124,7 +169,7 @@ export default function StudentUploadPage() {
       toast.error(
         error instanceof Error ? error.message : "Something went wrong"
       );
-      setPhase("preview");
+      setPhase("passwords");
     }
   }
 
@@ -203,10 +248,6 @@ export default function StudentUploadPage() {
                     <li>
                       <code className="bg-muted px-1 rounded text-xs">semester</code>
                       {" "}&mdash; current semester (1&ndash;8)
-                    </li>
-                    <li>
-                      <code className="bg-muted px-1 rounded text-xs">password</code>
-                      {" "}&mdash; initial password (min 8 characters, can be shared per department)
                     </li>
                   </ul>
                   <p className="text-xs text-muted-foreground">
@@ -315,8 +356,87 @@ export default function StudentUploadPage() {
               Choose Different File
             </Button>
             <Button
-              onClick={handleUpload}
+              onClick={() => {
+                // Initialize group passwords with empty strings
+                const groups = Array.from(
+                  new Set(students.map((s) => `${s.deptCode}:${s.semester}`))
+                );
+                const initial: Record<string, string> = {};
+                for (const g of groups) initial[g] = "";
+                setGroupPasswords(initial);
+                setPhase("passwords");
+              }}
               disabled={students.length === 0}
+            >
+              <ArrowRight />
+              Next: Set Passwords
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Phase 3: Set Passwords */}
+      {phase === "passwords" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Set an initial password for each department &amp; semester group.
+            Students can change their password after first login.
+          </p>
+
+          <div className="grid gap-4 max-w-2xl">
+            {Object.keys(groupPasswords).map((key) => {
+              const [deptCode, semester] = key.split(":");
+              const count = students.filter(
+                (s) => s.deptCode === deptCode && s.semester === Number(semester)
+              ).length;
+              return (
+                <Card key={key}>
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline">{deptCode}</Badge>
+                        <Badge variant="secondary">Sem {semester}</Badge>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {count} student{count !== 1 ? "s" : ""}
+                      </span>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor={`pw-${key}`}>Password</Label>
+                      <Input
+                        id={`pw-${key}`}
+                        type="text"
+                        placeholder="Min 8 characters"
+                        value={groupPasswords[key]}
+                        onChange={(e) =>
+                          setGroupPasswords((prev) => ({
+                            ...prev,
+                            [key]: e.target.value,
+                          }))
+                        }
+                      />
+                      {groupPasswords[key].length > 0 &&
+                        groupPasswords[key].length < 8 && (
+                          <p className="text-xs text-destructive">
+                            Password must be at least 8 characters
+                          </p>
+                        )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => setPhase("preview")}>
+              Back
+            </Button>
+            <Button
+              onClick={handleUpload}
+              disabled={Object.values(groupPasswords).some(
+                (pw) => pw.length < 8
+              )}
             >
               <Upload />
               Upload {students.length} Student
@@ -326,7 +446,7 @@ export default function StudentUploadPage() {
         </div>
       )}
 
-      {/* Phase 3: Uploading */}
+      {/* Phase 4: Uploading */}
       {phase === "uploading" && (
         <Card className="max-w-md">
           <CardContent className="flex items-center justify-center py-12">

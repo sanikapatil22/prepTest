@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
+import { isStudentEligible } from "@/lib/test-eligibility";
 
 type RouteParams = { params: Promise<{ testId: string }> };
 
@@ -42,6 +43,22 @@ export async function POST(_request: NextRequest, { params }: RouteParams) {
     // Verify test belongs to student's college
     if (test.drive.collegeId !== user.collegeId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Check eligibility
+    const student = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, departmentId: true, semester: true },
+    });
+
+    if (
+      !student ||
+      !isStudentEligible(test, student)
+    ) {
+      return NextResponse.json(
+        { error: "You are not eligible for this test" },
+        { status: 403 }
+      );
     }
 
     // Verify test is published

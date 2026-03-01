@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import { getSession } from "@/lib/auth-guard";
 import { TestStatus } from "@/generated/prisma/client";
 
@@ -14,6 +15,9 @@ const updateTestSchema = z.object({
   status: z.nativeEnum(TestStatus).optional(),
   startTime: z.string().datetime().optional().nullable(),
   endTime: z.string().datetime().optional().nullable(),
+  allowedDepartmentIds: z.array(z.string()).nullable().optional(),
+  allowedSemesters: z.array(z.number().int().min(1).max(8)).nullable().optional(),
+  allowedStudentIds: z.array(z.string()).nullable().optional(),
 });
 
 type RouteParams = { params: Promise<{ testId: string }> };
@@ -109,6 +113,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updateData.endTime = parsed.data.endTime
         ? new Date(parsed.data.endTime)
         : null;
+    }
+    // Prisma requires DbNull to set nullable JSON fields to SQL NULL
+    if (parsed.data.allowedDepartmentIds === null) {
+      updateData.allowedDepartmentIds = Prisma.DbNull;
+    }
+    if (parsed.data.allowedSemesters === null) {
+      updateData.allowedSemesters = Prisma.DbNull;
+    }
+    if (parsed.data.allowedStudentIds === null) {
+      updateData.allowedStudentIds = Prisma.DbNull;
     }
 
     const test = await prisma.test.update({

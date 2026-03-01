@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { Upload, Loader2, Trash2, Pencil, Search } from "lucide-react";
+import { Upload, Loader2, Trash2, Pencil, Search, ArrowUpCircle, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,6 +56,7 @@ interface Student {
   email: string;
   usn: string | null;
   semester: number | null;
+  isGraduated: boolean;
   department: { id: string; name: string; code: string | null } | null;
   createdAt: string;
   testsTaken: number;
@@ -82,6 +83,10 @@ export default function StudentsListPage() {
   const [deleteFilteredDialogOpen, setDeleteFilteredDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSingleStudent, setDeleteSingleStudent] = useState<Student | null>(null);
+  const [graduatedFilter, setGraduatedFilter] = useState("all");
+  const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
+  const [promoteFilteredDialogOpen, setPromoteFilteredDialogOpen] = useState(false);
+  const [promoting, setPromoting] = useState(false);
 
   // Edit state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -107,7 +112,7 @@ export default function StudentsListPage() {
   useEffect(() => {
     setSelected(new Set());
     fetchStudents();
-  }, [departmentFilter, semesterFilter]);
+  }, [departmentFilter, semesterFilter, graduatedFilter]);
 
   async function fetchStudents() {
     setLoading(true);
@@ -116,6 +121,7 @@ export default function StudentsListPage() {
       if (departmentFilter !== "all")
         params.set("departmentId", departmentFilter);
       if (semesterFilter !== "all") params.set("semester", semesterFilter);
+      if (graduatedFilter !== "all") params.set("graduated", graduatedFilter);
 
       const res = await fetch(`/api/students?${params.toString()}`);
       const data = await res.json();
@@ -173,6 +179,34 @@ export default function StudentsListPage() {
       setDeleteDialogOpen(false);
       setDeleteFilteredDialogOpen(false);
       setDeleteSingleStudent(null);
+    }
+  }
+
+  async function handleBulkPromote(ids: string[]) {
+    setPromoting(true);
+    try {
+      const res = await fetch("/api/students/bulk", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentIds: ids }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const parts: string[] = [];
+        if (data.promoted > 0) parts.push(`${data.promoted} promoted`);
+        if (data.graduated > 0) parts.push(`${data.graduated} graduated`);
+        toast.success(parts.join(", ") || "No eligible students to promote");
+        setSelected(new Set());
+        fetchStudents();
+      } else {
+        toast.error(data.error || "Failed to promote students");
+      }
+    } catch {
+      toast.error("Failed to promote students");
+    } finally {
+      setPromoting(false);
+      setPromoteDialogOpen(false);
+      setPromoteFilteredDialogOpen(false);
     }
   }
 
@@ -249,7 +283,7 @@ export default function StudentsListPage() {
   const someSelected =
     selected.size > 0 && selected.size < filteredStudents.length;
   const hasActiveFilter =
-    departmentFilter !== "all" || semesterFilter !== "all" || usnSearch !== "";
+    departmentFilter !== "all" || semesterFilter !== "all" || usnSearch !== "" || graduatedFilter !== "all";
 
   return (
     <div className="space-y-6">
@@ -309,6 +343,17 @@ export default function StudentsListPage() {
             ))}
           </SelectContent>
         </Select>
+
+        <Select value={graduatedFilter} onValueChange={setGraduatedFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Students</SelectItem>
+            <SelectItem value="false">Active</SelectItem>
+            <SelectItem value="true">Graduated</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {(selected.size > 0 || (hasActiveFilter && filteredStudents.length > 0)) && (
@@ -326,6 +371,13 @@ export default function StudentsListPage() {
                 <Trash2 className="mr-1 h-4 w-4" />
                 Delete Selected
               </Button>
+              <Button
+                size="sm"
+                onClick={() => setPromoteDialogOpen(true)}
+              >
+                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                Promote Selected
+              </Button>
             </>
           )}
           {hasActiveFilter && filteredStudents.length > 0 && (
@@ -340,6 +392,13 @@ export default function StudentsListPage() {
               >
                 <Trash2 className="mr-1 h-4 w-4" />
                 Delete All Filtered ({filteredStudents.length})
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setPromoteFilteredDialogOpen(true)}
+              >
+                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                Promote All Filtered ({filteredStudents.length})
               </Button>
             </>
           )}
@@ -420,7 +479,12 @@ export default function StudentsListPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      {student.semester ? (
+                      {student.isGraduated ? (
+                        <Badge variant="default" className="bg-green-600">
+                          <GraduationCap className="mr-1 h-3 w-3" />
+                          Graduated
+                        </Badge>
+                      ) : student.semester ? (
                         <Badge variant="secondary">
                           Sem {student.semester}
                         </Badge>
@@ -557,6 +621,67 @@ export default function StudentsListPage() {
                 <Trash2 className="mr-1 h-4 w-4" />
               )}
               Delete All ({filteredStudents.length})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Promote Selected Dialog */}
+      <AlertDialog open={promoteDialogOpen} onOpenChange={setPromoteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote students?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will increment the semester for {selected.size} selected student
+              {selected.size !== 1 ? "s" : ""}. Students in semester 8 will be
+              marked as graduated. Students without a semester or already graduated
+              will be skipped.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={promoting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleBulkPromote(Array.from(selected))}
+              disabled={promoting}
+            >
+              {promoting ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpCircle className="mr-1 h-4 w-4" />
+              )}
+              Promote
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Promote All Filtered Dialog */}
+      <AlertDialog
+        open={promoteFilteredDialogOpen}
+        onOpenChange={setPromoteFilteredDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Promote all filtered students?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will increment the semester for all {filteredStudents.length} student
+              {filteredStudents.length !== 1 ? "s" : ""} matching the current filters.
+              Students in semester 8 will be marked as graduated. Students without
+              a semester or already graduated will be skipped.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={promoting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleBulkPromote(filteredStudents.map((s) => s.id))}
+              disabled={promoting}
+            >
+              {promoting ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowUpCircle className="mr-1 h-4 w-4" />
+              )}
+              Promote All ({filteredStudents.length})
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

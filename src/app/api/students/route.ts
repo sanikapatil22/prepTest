@@ -19,8 +19,11 @@ export async function GET(request: NextRequest) {
     const departmentId = searchParams.get("departmentId");
     const semesterParam = searchParams.get("semester");
     const semester = semesterParam ? parseInt(semesterParam, 10) : null;
+    const graduatedParam = searchParams.get("graduated");
+    const search = searchParams.get("search");
 
-    const where: Record<string, unknown> = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {
       collegeId: user.collegeId,
       role: "STUDENT",
     };
@@ -33,6 +36,19 @@ export async function GET(request: NextRequest) {
       where.semester = semester;
     }
 
+    if (graduatedParam === "true") {
+      where.isGraduated = true;
+    } else if (graduatedParam === "false") {
+      where.isGraduated = false;
+    }
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { usn: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
     const students = await prisma.user.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -42,6 +58,7 @@ export async function GET(request: NextRequest) {
         email: true,
         usn: true,
         semester: true,
+        isGraduated: true,
         department: {
           select: { id: true, name: true, code: true },
         },
@@ -75,6 +92,7 @@ export async function GET(request: NextRequest) {
         email: student.email,
         usn: student.usn,
         semester: student.semester,
+        isGraduated: student.isGraduated,
         department: student.department,
         createdAt: student.createdAt,
         testsTaken,

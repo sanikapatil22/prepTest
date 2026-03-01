@@ -103,6 +103,7 @@ export async function PATCH(
         email: true,
         usn: true,
         semester: true,
+        isGraduated: true,
         department: {
           select: { id: true, name: true, code: true },
         },
