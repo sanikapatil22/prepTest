@@ -690,45 +690,45 @@ export function TestInterface({ testId }: TestInterfaceProps) {
     remainingSeconds !== null && remainingSeconds < 300; // < 5 min
 
   return (
-    <div className="flex flex-col h-screen">
-      {/* ---- Top Bar ---- */}
-      <header className="flex items-center justify-between border-b bg-background px-4 py-3 shrink-0">
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold truncate max-w-[300px] text-balance">
+    <div className="flex flex-col h-screen bg-muted/30">
+      {/* ── Top Bar ── */}
+      <header className="flex items-center justify-between border-b bg-background px-5 py-2.5 shrink-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-sm font-semibold truncate max-w-[260px]">
             {testTitle}
           </h1>
-          <Badge variant="outline" className="hidden sm:inline-flex">
+          <span className="hidden sm:inline-flex text-xs text-muted-foreground">
             {totalMarks} marks
-          </Badge>
-        </div>
+          </span>
 
-        <div className="flex items-center gap-4">
           {/* Save indicator */}
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
+          <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
             {saveStatus === "saving" && (
               <>
                 <Loader2 className="size-3 animate-spin" />
-                Saving...
+                <span>Saving</span>
               </>
             )}
             {saveStatus === "saved" && (
               <>
-                <Save className="size-3 text-green-500" />
-                Saved
+                <CheckCircle className="size-3 text-green-500" />
+                <span>Saved</span>
               </>
             )}
             {saveStatus === "error" && (
               <>
-                <AlertCircle className="size-3 text-red-500" />
-                Save failed
+                <AlertCircle className="size-3 text-destructive" />
+                <span>Error</span>
               </>
             )}
           </div>
+        </div>
 
+        <div className="flex items-center gap-2.5">
           {/* Violation count */}
           {violations.totalViolations > 0 && (
-            <div className="flex items-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3 py-1.5 text-sm font-medium text-red-600 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400">
-              <ShieldAlert className="size-4" />
+            <div className="flex items-center gap-1.5 rounded-md border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-600 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400">
+              <ShieldAlert className="size-3.5" />
               {violations.totalViolations}/5
             </div>
           )}
@@ -736,16 +736,16 @@ export function TestInterface({ testId }: TestInterfaceProps) {
           {/* Timer */}
           <div
             className={cn(
-              "flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-sm font-medium",
+              "flex items-center gap-1.5 rounded-md border px-3 py-1 font-mono text-sm tabular-nums font-semibold tracking-tight",
               isTimeLow
-                ? "border-red-300 bg-red-50 text-red-600 dark:border-red-700 dark:bg-red-950/40 dark:text-red-400"
-                : "border-muted"
+                ? "border-red-200 bg-red-50 text-red-600 dark:border-red-800 dark:bg-red-950/50 dark:text-red-400"
+                : "border-border bg-muted/50 text-foreground"
             )}
           >
             <Clock
               className={cn(
-                "size-4",
-                isTimeLow ? "text-red-500 animate-pulse" : ""
+                "size-3.5",
+                isTimeLow ? "text-red-500 animate-pulse" : "text-muted-foreground"
               )}
             />
             {remainingSeconds !== null ? formatTime(remainingSeconds) : "--:--"}
@@ -753,59 +753,57 @@ export function TestInterface({ testId }: TestInterfaceProps) {
         </div>
       </header>
 
-      {/* ---- Violation Banner ---- */}
+      {/* ── Violation Banner ── */}
       <ViolationBanner
         totalViolations={violations.totalViolations}
         maxViolations={5}
         lastWarning={warningMessage}
       />
 
-      {/* ---- Main Content ---- */}
+      {/* ── Main Content ── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* ---- Question Area (left) ---- */}
+        {/* ── Question Area ── */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <ScrollArea className="flex-1 p-6">
+          <ScrollArea className="flex-1">
             {currentQuestion && (
-              <div className="max-w-3xl mx-auto">
-                {/* Question header */}
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant="secondary">
-                        Question {currentIndex + 1} of {questions.length}
-                      </Badge>
-                      <Badge variant="outline">
-                        {currentQuestion.marks} mark
-                        {currentQuestion.marks !== 1 ? "s" : ""}
-                      </Badge>
-                      {currentQuestion.questionType === "MULTI_SELECT" && (
-                        <Badge
-                          variant="outline"
-                          className="border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-400"
-                        >
-                          Multiple Answers
-                        </Badge>
-                      )}
-                      {currentQuestion.questionType === "CODING" && (
-                        <Badge
-                          variant="outline"
-                          className="border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-400"
-                        >
-                          <Code2 className="size-3 mr-1" />
-                          Coding
-                        </Badge>
-                      )}
-                    </div>
-                    <h2 className="text-lg font-medium leading-relaxed">
-                      {currentQuestion.questionText}
-                    </h2>
-                  </div>
+              <div className="max-w-2xl mx-auto px-6 py-8">
+                {/* Question meta row */}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Question {currentIndex + 1} of {questions.length}
+                  </span>
+                  <span className="text-muted-foreground/40">·</span>
+                  <span className="text-xs text-muted-foreground">
+                    {currentQuestion.marks} mark{currentQuestion.marks !== 1 ? "s" : ""}
+                  </span>
+                  {currentQuestion.questionType === "MULTI_SELECT" && (
+                    <>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">
+                        Select multiple
+                      </span>
+                    </>
+                  )}
+                  {currentQuestion.questionType === "CODING" && (
+                    <>
+                      <span className="text-muted-foreground/40">·</span>
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400 flex items-center gap-1">
+                        <Code2 className="size-3" />
+                        Coding
+                      </span>
+                    </>
+                  )}
                 </div>
+
+                {/* Question text */}
+                <h2 className="text-xl font-semibold leading-relaxed mb-8 text-foreground">
+                  {currentQuestion.questionText}
+                </h2>
 
                 {/* MCQ Options */}
                 {currentQuestion.questionType !== "CODING" && (
                   <>
-                    <div className="space-y-3">
+                    <div className="space-y-2.5">
                       {currentQuestion.options.map((option, optIdx) => {
                         const selectedIds =
                           answers.get(currentQuestion.id) || [];
@@ -825,47 +823,33 @@ export function TestInterface({ testId }: TestInterfaceProps) {
                               )
                             }
                             className={cn(
-                              "flex w-full items-start gap-3 rounded-lg border p-4 text-left text-sm transition-colors hover:bg-muted/50",
+                              "flex w-full items-center gap-3.5 rounded-xl border px-4 py-3.5 text-left text-sm transition-all duration-150",
                               isSelected
-                                ? "border-primary bg-primary/5 ring-1 ring-primary"
-                                : "border-muted"
+                                ? "border-primary/60 bg-primary/[0.06] shadow-sm shadow-primary/10"
+                                : "border-border bg-background hover:border-border hover:bg-accent/50"
                             )}
                           >
-                            {/* Radio / Checkbox indicator */}
+                            {/* Letter badge */}
                             <div
                               className={cn(
-                                "mt-0.5 flex size-5 shrink-0 items-center justify-center border-2 transition-colors",
-                                isSingle ? "rounded-full" : "rounded",
+                                "flex size-8 shrink-0 items-center justify-center rounded-lg text-xs font-semibold transition-colors",
                                 isSelected
-                                  ? "border-primary bg-primary text-primary-foreground"
-                                  : "border-muted-foreground/40"
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
                               )}
                             >
-                              {isSelected &&
-                                (isSingle ? (
-                                  <div className="size-2 rounded-full bg-current" />
-                                ) : (
-                                  <svg
-                                    viewBox="0 0 14 14"
-                                    fill="none"
-                                    className="size-3"
-                                  >
-                                    <path
-                                      d="M11.6666 3.5L5.24992 9.91667L2.33325 7"
-                                      stroke="currentColor"
-                                      strokeWidth="2"
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                    />
-                                  </svg>
-                                ))}
+                              {String.fromCharCode(65 + optIdx)}
                             </div>
-                            <div>
-                              <span className="font-medium mr-2">
-                                {String.fromCharCode(65 + optIdx)}.
-                              </span>
+                            <span className={cn(
+                              "flex-1",
+                              isSelected ? "text-foreground font-medium" : "text-foreground/80"
+                            )}>
                               {option.text}
-                            </div>
+                            </span>
+                            {/* Selection indicator */}
+                            {isSelected && (
+                              <CheckCircle className="size-4 shrink-0 text-primary" />
+                            )}
                           </button>
                         );
                       })}
@@ -873,10 +857,9 @@ export function TestInterface({ testId }: TestInterfaceProps) {
 
                     {/* Clear answer */}
                     {answers.has(currentQuestion.id) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="mt-4 text-muted-foreground"
+                      <button
+                        type="button"
+                        className="mt-4 text-xs text-muted-foreground hover:text-foreground transition-colors"
                         onClick={() => {
                           setAnswers((prev) => {
                             const next = new Map(prev);
@@ -886,8 +869,8 @@ export function TestInterface({ testId }: TestInterfaceProps) {
                           });
                         }}
                       >
-                        Clear Answer
-                      </Button>
+                        Clear selection
+                      </button>
                     )}
                   </>
                 )}
@@ -916,20 +899,21 @@ export function TestInterface({ testId }: TestInterfaceProps) {
             )}
           </ScrollArea>
 
-          {/* ---- Bottom Navigation ---- */}
-          <div className="flex items-center justify-between border-t bg-background px-4 py-3 shrink-0">
-            <div className="flex items-center gap-2">
+          {/* ── Bottom Navigation ── */}
+          <div className="flex items-center justify-between border-t bg-background px-5 py-2.5 shrink-0">
+            <div className="flex items-center gap-1.5">
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 disabled={currentIndex === 0}
                 onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
+                className="h-8 px-2.5 text-xs"
               >
-                <ChevronLeft className="size-4 mr-1" />
-                Previous
+                <ChevronLeft className="size-3.5 mr-0.5" />
+                Prev
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 disabled={currentIndex === questions.length - 1}
                 onClick={() =>
@@ -937,51 +921,71 @@ export function TestInterface({ testId }: TestInterfaceProps) {
                     Math.min(questions.length - 1, i + 1)
                   )
                 }
+                className="h-8 px-2.5 text-xs"
               >
                 Next
-                <ChevronRight className="size-4 ml-1" />
+                <ChevronRight className="size-3.5 ml-0.5" />
               </Button>
             </div>
 
             <div className="flex items-center gap-2">
               {currentQuestion && (
                 <Button
-                  variant={
-                    flagged.has(currentQuestion.id) ? "secondary" : "outline"
-                  }
+                  variant="ghost"
                   size="sm"
                   onClick={() => toggleFlag(currentQuestion.id)}
+                  className={cn(
+                    "h-8 px-3 text-xs",
+                    flagged.has(currentQuestion.id) && "text-orange-600 dark:text-orange-400"
+                  )}
                 >
                   <Flag
                     className={cn(
-                      "size-4 mr-1",
+                      "size-3.5 mr-1.5",
                       flagged.has(currentQuestion.id)
-                        ? "text-orange-500 fill-orange-500"
-                        : ""
+                        ? "fill-orange-500 text-orange-500"
+                        : "text-muted-foreground"
                     )}
                   />
-                  {flagged.has(currentQuestion.id)
-                    ? "Flagged"
-                    : "Mark for Review"}
+                  {flagged.has(currentQuestion.id) ? "Flagged" : "Flag"}
                 </Button>
               )}
+
+              <Separator orientation="vertical" className="h-5" />
 
               <Button
                 size="sm"
                 onClick={() => setShowSubmitDialog(true)}
-                className="bg-success hover:bg-success/90"
+                className="h-8 px-4 text-xs font-semibold bg-primary hover:bg-primary/90"
               >
-                <Send className="size-4 mr-1" />
-                Submit Test
+                <Send className="size-3.5 mr-1.5" />
+                Submit
               </Button>
             </div>
           </div>
         </div>
 
-        {/* ---- Navigation Panel (right sidebar) ---- */}
-        <div className="hidden md:flex w-[280px] flex-col border-l bg-muted/30 shrink-0">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold text-sm mb-3">Question Navigator</h3>
+        {/* ── Right Sidebar ── */}
+        <div className="hidden md:flex w-[260px] flex-col border-l bg-background shrink-0">
+          {/* Question grid */}
+          <div className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Questions
+              </span>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                {answeredCount}/{questions.length}
+              </span>
+            </div>
+
+            {/* Progress bar */}
+            <div className="h-1 rounded-full bg-muted mb-4 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-300"
+                style={{ width: `${questions.length > 0 ? (answeredCount / questions.length) * 100 : 0}%` }}
+              />
+            </div>
+
             <div className="grid grid-cols-6 gap-1.5">
               {questions.map((q, idx) => {
                 const isAnswered = isQuestionAnswered(q);
@@ -995,96 +999,65 @@ export function TestInterface({ testId }: TestInterfaceProps) {
                     type="button"
                     onClick={() => setCurrentIndex(idx)}
                     className={cn(
-                      "flex size-9 items-center justify-center rounded text-xs font-medium transition-colors",
+                      "relative flex size-9 items-center justify-center rounded-lg text-xs font-medium transition-all duration-150",
                       isCurrent
-                        ? "ring-2 ring-primary ring-offset-1"
-                        : "",
+                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        : "hover:ring-1 hover:ring-border",
                       isFlagged
-                        ? "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300"
+                        ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
                         : isAnswered
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
                           : isCoding
-                            ? "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300"
                             : "bg-muted text-muted-foreground"
                     )}
                     title={`Question ${idx + 1}${isCoding ? " (coding)" : ""}${isFlagged ? " (flagged)" : ""}${isAnswered ? " (answered)" : ""}`}
                   >
                     {idx + 1}
+                    {/* Flag dot */}
+                    {isFlagged && (
+                      <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full bg-orange-500" />
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
+          <Separator />
+
           {/* Summary */}
           <div className="p-4 space-y-3">
-            <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Summary
-            </h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-3 rounded bg-green-500" />
-                  <span>Answered</span>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <span className="size-2 rounded-full bg-emerald-500" />
+                  Answered
+                </span>
+                <span className="font-medium tabular-nums">{answeredCount}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="flex items-center gap-2 text-muted-foreground">
+                  <span className="size-2 rounded-full bg-muted-foreground/30" />
+                  Unanswered
+                </span>
+                <span className="font-medium tabular-nums">{unansweredCount}</span>
+              </div>
+              {flaggedCount > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="flex items-center gap-2 text-muted-foreground">
+                    <span className="size-2 rounded-full bg-orange-500" />
+                    Flagged
+                  </span>
+                  <span className="font-medium tabular-nums">{flaggedCount}</span>
                 </div>
-                <span className="font-medium">{answeredCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-3 rounded bg-muted-foreground/30" />
-                  <span>Unanswered</span>
-                </div>
-                <span className="font-medium">{unansweredCount}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-3 rounded bg-orange-400" />
-                  <span>Flagged</span>
-                </div>
-                <span className="font-medium">{flaggedCount}</span>
-              </div>
-            </div>
-
-            <Separator className="my-2" />
-
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Total</span>
-              <span className="font-medium">{questions.length}</span>
-            </div>
-          </div>
-
-          {/* Legend */}
-          <div className="mt-auto p-4 border-t">
-            <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-2">
-              Legend
-            </h4>
-            <div className="space-y-1.5 text-xs text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <div className="size-3 rounded bg-green-100 dark:bg-green-900/40" />
-                <span>Answered</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="size-3 rounded bg-muted" />
-                <span>Unanswered</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="size-3 rounded bg-purple-100 dark:bg-purple-900/40" />
-                <span>Coding Question</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="size-3 rounded bg-orange-100 dark:bg-orange-900/40" />
-                <span>Marked for Review</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="size-3 rounded ring-2 ring-primary ring-offset-1" />
-                <span>Current Question</span>
-              </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* ---- Submit Dialog ---- */}
+      {/* ── Submit Dialog ── */}
       <SubmitDialog
         open={showSubmitDialog}
         onOpenChange={setShowSubmitDialog}

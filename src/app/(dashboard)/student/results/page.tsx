@@ -2,21 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { FileText } from "lucide-react";
+  FileText,
+  ChevronRight,
+  Clock,
+  Trophy,
+  AlertTriangle,
+} from "lucide-react";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 function formatDuration(seconds: number | null): string {
   if (seconds === null || seconds === undefined) return "N/A";
@@ -63,120 +58,128 @@ export default async function StudentResultsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-balance">My Results</h1>
-        <p className="text-muted-foreground">
-          View all your test results and scores.
+        <h1 className="text-2xl font-bold tracking-tight">Results</h1>
+        <p className="text-sm text-muted-foreground mt-1">
+          Your completed test scores and performance.
         </p>
       </div>
 
       {attempts.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <FileText className="mx-auto size-12 text-muted-foreground mb-4" />
-            <p className="text-lg font-medium">No results yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Complete a test to see your results here.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+          <div className="flex items-center justify-center size-12 rounded-xl bg-muted mb-4">
+            <FileText className="size-5 text-muted-foreground" />
+          </div>
+          <p className="font-medium">No results yet</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Complete a test to see your results here.
+          </p>
+        </div>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Test Name</TableHead>
-                  <TableHead>Drive / Company</TableHead>
-                  <TableHead className="text-center">Score</TableHead>
-                  <TableHead className="text-center">Total Marks</TableHead>
-                  <TableHead className="text-center">Percentage</TableHead>
-                  <TableHead className="text-center">Result</TableHead>
-                  <TableHead className="text-center">Time Taken</TableHead>
-                  <TableHead className="text-center">Date</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attempts.map((attempt) => {
-                  const passed =
-                    attempt.test.passingMarks > 0 &&
-                    (attempt.score ?? 0) >= attempt.test.passingMarks;
-                  const failed =
-                    attempt.test.passingMarks > 0 &&
-                    (attempt.score ?? 0) < attempt.test.passingMarks;
+        <div className="space-y-2">
+          {attempts.map((attempt) => {
+            const passed =
+              attempt.test.passingMarks > 0 &&
+              (attempt.score ?? 0) >= attempt.test.passingMarks;
+            const failed =
+              attempt.test.passingMarks > 0 &&
+              (attempt.score ?? 0) < attempt.test.passingMarks;
+            const percentage =
+              attempt.percentage !== null
+                ? Math.round(attempt.percentage)
+                : null;
+            const timedOut = attempt.status === "TIMED_OUT";
 
-                  const href = `/student/results/${attempt.id}`;
-                  return (
-                    <TableRow key={attempt.id} className="cursor-pointer hover:bg-muted/50">
-                      <TableCell>
-                        <Link href={href} className="block font-medium text-primary hover:underline">
-                          {attempt.test.title}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Link href={href} className="block">
-                          <div className="text-sm">{attempt.test.drive.title}</div>
-                          {attempt.test.drive.companyName && (
-                            <p className="text-xs text-muted-foreground">
-                              {attempt.test.drive.companyName}
-                            </p>
-                          )}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-center font-medium">
-                        <Link href={href} className="block tabular-nums">
-                          {attempt.score ?? 0}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Link href={href} className="block tabular-nums">
-                          {attempt.test.totalMarks}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Link href={href} className="block">
-                          <span className="font-semibold tabular-nums">
-                            {attempt.percentage !== null
-                              ? `${Math.round(attempt.percentage)}%`
-                              : "N/A"}
-                          </span>
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Link href={href} className="block">
-                          {passed ? (
-                            <Badge variant="default" className="bg-success">
-                              Passed
-                            </Badge>
-                          ) : failed ? (
-                            <Badge variant="destructive">Failed</Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              {attempt.status === "TIMED_OUT"
-                                ? "Timed Out"
-                                : "Submitted"}
-                            </Badge>
-                          )}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        <Link href={href} className="block">
-                          {formatDuration(attempt.timeTakenSeconds)}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        <Link href={href} className="block">
-                          {attempt.submittedAt
-                            ? format(attempt.submittedAt, "MMM d, yyyy")
-                            : "N/A"}
-                        </Link>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+            return (
+              <Link
+                key={attempt.id}
+                href={`/student/results/${attempt.id}`}
+                className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition-colors hover:bg-accent/50"
+              >
+                {/* Score circle */}
+                <div
+                  className={cn(
+                    "flex items-center justify-center size-12 rounded-xl shrink-0 font-bold text-sm tabular-nums",
+                    passed
+                      ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      : failed
+                        ? "bg-red-500/10 text-red-600 dark:text-red-400"
+                        : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {percentage !== null ? `${percentage}%` : "—"}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <span className="font-medium text-sm truncate">
+                      {attempt.test.title}
+                    </span>
+                    {passed && (
+                      <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-400 dark:border-emerald-800 text-[10px] px-1.5 py-0">
+                        Passed
+                      </Badge>
+                    )}
+                    {failed && (
+                      <Badge className="bg-red-500/10 text-red-600 border-red-200 dark:bg-red-500/15 dark:text-red-400 dark:border-red-800 text-[10px] px-1.5 py-0">
+                        Failed
+                      </Badge>
+                    )}
+                    {timedOut && (
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 text-amber-600 border-amber-200 dark:text-amber-400 dark:border-amber-800">
+                        <AlertTriangle className="size-2.5 mr-0.5" />
+                        Timed Out
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="truncate">
+                      {attempt.test.drive.title}
+                      {attempt.test.drive.companyName
+                        ? ` · ${attempt.test.drive.companyName}`
+                        : ""}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Right side stats */}
+                <div className="hidden sm:flex items-center gap-5 shrink-0">
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+                      <Trophy className="size-3" />
+                      Score
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums">
+                      {attempt.score ?? 0}
+                      <span className="text-muted-foreground font-normal">
+                        /{attempt.test.totalMarks}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-0.5">
+                      <Clock className="size-3" />
+                      Time
+                    </div>
+                    <span className="text-sm tabular-nums">
+                      {formatDuration(attempt.timeTakenSeconds)}
+                    </span>
+                  </div>
+                  <div className="text-right min-w-[80px]">
+                    <div className="text-xs text-muted-foreground mb-0.5">Date</div>
+                    <span className="text-sm tabular-nums">
+                      {attempt.submittedAt
+                        ? format(attempt.submittedAt, "MMM d, yyyy")
+                        : "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                <ChevronRight className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-colors shrink-0" />
+              </Link>
+            );
+          })}
+        </div>
       )}
     </div>
   );
