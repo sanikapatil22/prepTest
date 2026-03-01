@@ -255,7 +255,10 @@ export default function EditLibraryQuestionPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -269,7 +272,7 @@ export default function EditLibraryQuestionPage() {
             Back to Library
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Edit Library Question</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Edit Library Question</h1>
         <p className="text-muted-foreground">Update or delete this library question.</p>
       </div>
 
@@ -532,7 +535,7 @@ export default function EditLibraryQuestionPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSaving}>
-                {isSaving && <Loader2 className="animate-spin" />}
+                {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Save Changes
               </Button>
               <Button type="button" variant="outline" asChild>
@@ -559,7 +562,7 @@ export default function EditLibraryQuestionPage() {
                       disabled={isDeleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {isDeleting && <Loader2 className="animate-spin" />}
+                      {isDeleting && <Loader2 className="mr-2 size-4 animate-spin" />}
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>

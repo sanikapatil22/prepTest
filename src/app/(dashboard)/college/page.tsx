@@ -57,7 +57,7 @@ export default async function CollegeDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Dashboard</h1>
         <p className="text-muted-foreground">
           Overview of your college placement activities.
         </p>
@@ -73,7 +73,7 @@ export default async function CollegeDashboardPage() {
               <stat.icon className="size-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
+              <div className="text-3xl font-bold tabular-nums">{stat.value}</div>
               <p className="text-xs text-muted-foreground">
                 {stat.description}
               </p>

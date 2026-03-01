@@ -195,7 +195,7 @@ export function CodeEditor({
           size="sm"
           onClick={handleRun}
           disabled={running || !code.trim()}
-          className="bg-green-600 hover:bg-green-700"
+          className="bg-success hover:bg-success/90"
         >
           {running ? (
             <Loader2 className="size-4 animate-spin mr-1" aria-hidden="true" />
@@ -234,7 +234,7 @@ export function CodeEditor({
             <Badge
               variant={passedCount === totalCount ? "default" : "destructive"}
               className={
-                passedCount === totalCount ? "bg-green-600" : undefined
+                passedCount === totalCount ? "bg-success" : undefined
               }
             >
               {passedCount}/{totalCount} passed

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -66,17 +66,32 @@ const difficultyColor: Record<string, "default" | "secondary" | "destructive" | 
 };
 
 export default function AdminLibraryPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("");
-  const [difficulty, setDifficulty] = useState("");
-  const [type, setType] = useState("");
-  const [page, setPage] = useState(1);
-
   const [categories, setCategories] = useState<string[]>([]);
+
+  // Derive filter + pagination state from URL
+  const search = searchParams.get("search") ?? "";
+  const category = searchParams.get("category") ?? "";
+  const difficulty = searchParams.get("difficulty") ?? "";
+  const type = searchParams.get("type") ?? "";
+  const page = Number(searchParams.get("page") ?? "1");
+
+  function setParam(key: string, value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!value || value === "all") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    // Reset to page 1 whenever a filter changes
+    if (key !== "page") params.delete("page");
+    router.replace(`?${params.toString()}`);
+  }
 
   const fetchQuestions = useCallback(async () => {
     setIsLoading(true);
@@ -111,11 +126,6 @@ export default function AdminLibraryPage() {
       .catch(() => {});
   }, []);
 
-  // Reset to page 1 on filter changes
-  useEffect(() => {
-    setPage(1);
-  }, [search, category, difficulty, type]);
-
   async function handleDelete(questionId: string) {
     setDeletingId(questionId);
     try {
@@ -136,7 +146,7 @@ export default function AdminLibraryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Question Library</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Question Library</h1>
           <p className="text-muted-foreground">
             Manage shared questions that college admins can import into tests.
           </p>
@@ -167,13 +177,13 @@ export default function AdminLibraryPage() {
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
               <Input
-                placeholder="Search questions..."
+                placeholder="Search questions…"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => setParam("search", e.target.value)}
                 className="pl-9"
               />
             </div>
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(v) => setParam("category", v)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
@@ -186,7 +196,7 @@ export default function AdminLibraryPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={difficulty} onValueChange={setDifficulty}>
+            <Select value={difficulty} onValueChange={(v) => setParam("difficulty", v)}>
               <SelectTrigger className="w-[150px]">
                 <SelectValue placeholder="All Difficulty" />
               </SelectTrigger>
@@ -197,7 +207,7 @@ export default function AdminLibraryPage() {
                 <SelectItem value="HARD">Hard</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={type} onValueChange={setType}>
+            <Select value={type} onValueChange={(v) => setParam("type", v)}>
               <SelectTrigger className="w-[160px]">
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
@@ -215,7 +225,10 @@ export default function AdminLibraryPage() {
       {/* Questions Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <div className="text-center space-y-3">
+            <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          </div>
         </div>
       ) : (
         <>
@@ -247,7 +260,7 @@ export default function AdminLibraryPage() {
                       </TableCell>
                       <TableCell className="max-w-md truncate">
                         {q.questionText.length > 80
-                          ? q.questionText.substring(0, 80) + "..."
+                          ? q.questionText.substring(0, 80) + "…"
                           : q.questionText}
                       </TableCell>
                       <TableCell>
@@ -299,7 +312,7 @@ export default function AdminLibraryPage() {
                                   disabled={deletingId === q.id}
                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                 >
-                                  {deletingId === q.id && <Loader2 className="animate-spin" />}
+                                  {deletingId === q.id && <Loader2 className="mr-2 size-4 animate-spin" />}
                                   Delete
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -325,7 +338,7 @@ export default function AdminLibraryPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => setParam("page", String(Math.max(1, page - 1)))}
                   disabled={page <= 1}
                 >
                   Previous
@@ -333,7 +346,7 @@ export default function AdminLibraryPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPage((p) => p + 1)}
+                  onClick={() => setParam("page", String(page + 1))}
                   disabled={page >= data.totalPages}
                 >
                   Next

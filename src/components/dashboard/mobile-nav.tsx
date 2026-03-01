@@ -64,7 +64,7 @@ export function MobileNav({ role }: { role: string }) {
       <SheetContent side="left" className="w-64 p-0">
         <div className="flex items-center h-16 px-6 border-b">
           <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-            <FileText className="h-6 w-6 text-primary" aria-hidden="true" />
+            <FileText className="size-6 text-primary" aria-hidden="true" />
             <span className="text-lg font-bold">PrepZero</span>
           </Link>
         </div>
@@ -88,7 +88,7 @@ export function MobileNav({ role }: { role: string }) {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <item.icon className="h-4 w-4" aria-hidden="true" />
+                <item.icon className="size-4" aria-hidden="true" />
                 {item.title}
               </Link>
             );

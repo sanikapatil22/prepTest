@@ -336,7 +336,10 @@ export default function TestDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -353,7 +356,7 @@ export default function TestDetailPage() {
           </Link>
         </Button>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">{test.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">{test.title}</h1>
           <Badge variant={testStatusVariant[test.status] ?? "secondary"}>
             {test.status}
           </Badge>
@@ -457,7 +460,7 @@ export default function TestDetailPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSaving}>
-                {isSaving && <Loader2 className="animate-spin" />}
+                {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Save Changes
               </Button>
               <Button type="button" variant="outline" asChild>
@@ -498,7 +501,7 @@ export default function TestDetailPage() {
                       disabled={isDeletingTest}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {isDeletingTest && <Loader2 className="animate-spin" />}
+                      {isDeletingTest && <Loader2 className="mr-2 size-4 animate-spin" />}
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -784,7 +787,7 @@ export default function TestDetailPage() {
                               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                             >
                               {deletingId === question.id && (
-                                <Loader2 className="animate-spin" />
+                                <Loader2 className="mr-2 size-4 animate-spin" />
                               )}
                               Delete
                             </AlertDialogAction>

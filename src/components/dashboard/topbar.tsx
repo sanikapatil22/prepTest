@@ -76,12 +76,12 @@ export function Topbar({ user }: TopbarProps) {
                     : "/student/settings"
               }
             >
-              <Settings className="mr-2 h-4 w-4" aria-hidden="true" />
+              <Settings className="mr-2 size-4" aria-hidden="true" />
               Settings
             </a>
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
-            <LogOut className="mr-2 h-4 w-4" aria-hidden="true" />
+            <LogOut className="mr-2 size-4" aria-hidden="true" />
             Sign out
           </DropdownMenuItem>
         </DropdownMenuContent>

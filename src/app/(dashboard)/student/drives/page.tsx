@@ -58,7 +58,7 @@ export default async function StudentDrivesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Placement Drives</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Placement Drives</h1>
         <p className="text-muted-foreground">
           Active and upcoming placement drives for your college.
         </p>

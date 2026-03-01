@@ -91,7 +91,10 @@ export default function AdminSettingsPage() {
   if (isPending) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -101,7 +104,7 @@ export default function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Settings</h1>
         <p className="text-muted-foreground">
           Manage your profile and account settings.
         </p>
@@ -142,7 +145,7 @@ export default function AdminSettingsPage() {
 
               <div className="pt-4">
                 <Button type="submit" disabled={isSaving}>
-                  {isSaving && <Loader2 className="animate-spin" />}
+                  {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Save Changes
                 </Button>
               </div>
@@ -197,7 +200,7 @@ export default function AdminSettingsPage() {
             </div>
             <div className="pt-4">
               <Button type="submit" disabled={isChangingPassword}>
-                {isChangingPassword && <Loader2 className="animate-spin" />}
+                {isChangingPassword && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Change Password
               </Button>
             </div>

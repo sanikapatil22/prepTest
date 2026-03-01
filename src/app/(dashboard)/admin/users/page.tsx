@@ -62,7 +62,7 @@ export default async function UsersListPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Users</h1>
           <p className="text-muted-foreground">
             All registered users across the platform.
           </p>

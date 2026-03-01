@@ -145,7 +145,7 @@ export default async function StudentDashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight text-balance">
           Welcome back, {user.name.split(" ")[0]}
         </h1>
         <p className="text-muted-foreground">
@@ -164,7 +164,7 @@ export default async function StudentDashboardPage() {
               <stat.icon className="size-5 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
+              <div className="text-3xl font-bold tabular-nums">{stat.value}</div>
               <p className="text-xs text-muted-foreground">
                 {stat.description}
               </p>
@@ -267,12 +267,12 @@ export default async function StudentDashboardPage() {
                       )}
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold">
+                      <div className="text-lg font-bold tabular-nums">
                         {attempt.percentage !== null
                           ? `${Math.round(attempt.percentage)}%`
                           : "N/A"}
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground tabular-nums">
                         {attempt.score ?? 0}/{attempt.test.totalMarks}
                       </p>
                     </div>

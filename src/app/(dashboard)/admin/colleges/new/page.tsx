@@ -66,7 +66,7 @@ export default function NewCollegePage() {
             Back to Colleges
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Add College</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Add College</h1>
         <p className="text-muted-foreground">
           Register a new college on the platform.
         </p>
@@ -138,7 +138,7 @@ export default function NewCollegePage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
+                {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Create College
               </Button>
               <Button type="button" variant="outline" asChild>

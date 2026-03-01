@@ -176,7 +176,10 @@ export default function StudentUploadPage() {
   if (phase === "loading") {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -190,7 +193,7 @@ export default function StudentUploadPage() {
             Back to Students
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight text-balance">
           Bulk Upload Students
         </h1>
         <p className="text-muted-foreground">

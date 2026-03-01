@@ -104,7 +104,7 @@ export default function BulkUploadPage() {
             Back to Test
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight text-balance">
           Bulk Upload Questions
         </h1>
         <p className="text-muted-foreground">

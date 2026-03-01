@@ -63,7 +63,7 @@ export default async function StudentResultsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Results</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">My Results</h1>
         <p className="text-muted-foreground">
           View all your test results and scores.
         </p>
@@ -104,59 +104,71 @@ export default async function StudentResultsPage() {
                     attempt.test.passingMarks > 0 &&
                     (attempt.score ?? 0) < attempt.test.passingMarks;
 
+                  const href = `/student/results/${attempt.id}`;
                   return (
                     <TableRow key={attempt.id} className="cursor-pointer hover:bg-muted/50">
                       <TableCell>
-                        <Link
-                          href={`/student/results/${attempt.id}`}
-                          className="font-medium text-primary hover:underline"
-                        >
+                        <Link href={href} className="block font-medium text-primary hover:underline">
                           {attempt.test.title}
                         </Link>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">{attempt.test.drive.title}</div>
-                        {attempt.test.drive.companyName && (
-                          <p className="text-xs text-muted-foreground">
-                            {attempt.test.drive.companyName}
-                          </p>
-                        )}
+                        <Link href={href} className="block">
+                          <div className="text-sm">{attempt.test.drive.title}</div>
+                          {attempt.test.drive.companyName && (
+                            <p className="text-xs text-muted-foreground">
+                              {attempt.test.drive.companyName}
+                            </p>
+                          )}
+                        </Link>
                       </TableCell>
                       <TableCell className="text-center font-medium">
-                        {attempt.score ?? 0}
+                        <Link href={href} className="block tabular-nums">
+                          {attempt.score ?? 0}
+                        </Link>
                       </TableCell>
                       <TableCell className="text-center">
-                        {attempt.test.totalMarks}
+                        <Link href={href} className="block tabular-nums">
+                          {attempt.test.totalMarks}
+                        </Link>
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className="font-semibold">
-                          {attempt.percentage !== null
-                            ? `${Math.round(attempt.percentage)}%`
+                        <Link href={href} className="block">
+                          <span className="font-semibold tabular-nums">
+                            {attempt.percentage !== null
+                              ? `${Math.round(attempt.percentage)}%`
+                              : "N/A"}
+                          </span>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Link href={href} className="block">
+                          {passed ? (
+                            <Badge variant="default" className="bg-success">
+                              Passed
+                            </Badge>
+                          ) : failed ? (
+                            <Badge variant="destructive">Failed</Badge>
+                          ) : (
+                            <Badge variant="secondary">
+                              {attempt.status === "TIMED_OUT"
+                                ? "Timed Out"
+                                : "Submitted"}
+                            </Badge>
+                          )}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        <Link href={href} className="block">
+                          {formatDuration(attempt.timeTakenSeconds)}
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-center text-sm">
+                        <Link href={href} className="block">
+                          {attempt.submittedAt
+                            ? format(attempt.submittedAt, "MMM d, yyyy")
                             : "N/A"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        {passed ? (
-                          <Badge variant="default" className="bg-green-600">
-                            Passed
-                          </Badge>
-                        ) : failed ? (
-                          <Badge variant="destructive">Failed</Badge>
-                        ) : (
-                          <Badge variant="secondary">
-                            {attempt.status === "TIMED_OUT"
-                              ? "Timed Out"
-                              : "Submitted"}
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {formatDuration(attempt.timeTakenSeconds)}
-                      </TableCell>
-                      <TableCell className="text-center text-sm">
-                        {attempt.submittedAt
-                          ? format(attempt.submittedAt, "MMM d, yyyy")
-                          : "N/A"}
+                        </Link>
                       </TableCell>
                     </TableRow>
                   );

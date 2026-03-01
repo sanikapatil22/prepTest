@@ -168,7 +168,7 @@ export default function ImportLibraryPage() {
             Back to Test
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Import from Library</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Import from Library</h1>
         <p className="text-muted-foreground">
           Select questions from the shared library to add to this test.
         </p>
@@ -235,7 +235,7 @@ export default function ImportLibraryPage() {
           </p>
           <Button onClick={handleImport} disabled={isImporting}>
             {isImporting ? (
-              <Loader2 className="animate-spin" />
+              <Loader2 className="mr-2 size-4 animate-spin" />
             ) : (
               <BookOpen />
             )}
@@ -247,7 +247,10 @@ export default function ImportLibraryPage() {
       {/* Questions Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <div className="text-center space-y-3">
+            <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
         </div>
       ) : (
         <>

@@ -78,7 +78,7 @@ export default async function TestResultsPage({
             Back to Test
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Test Results</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Test Results</h1>
         <p className="text-muted-foreground">
           Results for <span className="font-medium">{test.title}</span> in{" "}
           <span className="font-medium">{test.drive.title}</span>.

@@ -85,7 +85,7 @@ export function SubmitDialog({
               onConfirm();
             }}
             disabled={loading}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-success hover:bg-success/90"
           >
             {loading ? (
               <>

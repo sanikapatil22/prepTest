@@ -69,7 +69,7 @@ export function Sidebar({ role }: { role: string }) {
     <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-background">
       <div className="flex items-center h-16 px-6 border-b">
         <Link href="/" className="flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" aria-hidden="true" />
+          <FileText className="size-6 text-primary" aria-hidden="true" />
           <span className="text-lg font-bold">PrepZero</span>
         </Link>
       </div>
@@ -93,7 +93,7 @@ export function Sidebar({ role }: { role: string }) {
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <item.icon className="h-4 w-4" aria-hidden="true" />
+                <item.icon className="size-4" aria-hidden="true" />
                 {item.title}
               </Link>
             );

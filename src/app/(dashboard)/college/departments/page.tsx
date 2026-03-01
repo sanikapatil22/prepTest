@@ -136,7 +136,10 @@ export default function DepartmentsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-8 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -145,14 +148,14 @@ export default function DepartmentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Departments</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Departments</h1>
           <p className="text-muted-foreground">
             Manage departments in your college.
           </p>
         </div>
         {!showForm && !editingId && (
           <Button onClick={() => setShowForm(true)}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="size-4 mr-2" />
             Add Department
           </Button>
         )}
@@ -179,7 +182,7 @@ export default function DepartmentsPage() {
             />
           </div>
           <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {saving && <Loader2 className="size-4 mr-2 animate-spin" />}
             Save
           </Button>
           <Button variant="ghost" onClick={resetForm} disabled={saving}>
@@ -237,9 +240,9 @@ export default function DepartmentsPage() {
                           disabled={saving}
                         >
                           {saving ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Loader2 className="size-4 animate-spin" />
                           ) : (
-                            <Check className="h-4 w-4" />
+                            <Check className="size-4" />
                           )}
                         </Button>
                         <Button
@@ -248,7 +251,7 @@ export default function DepartmentsPage() {
                           onClick={resetForm}
                           disabled={saving}
                         >
-                          <X className="h-4 w-4" />
+                          <X className="size-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -267,12 +270,12 @@ export default function DepartmentsPage() {
                           variant="ghost"
                           onClick={() => startEdit(dept)}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="size-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button size="icon" variant="ghost">
-                              <Trash2 className="h-4 w-4 text-destructive" />
+                              <Trash2 className="size-4 text-destructive" />
                             </Button>
                           </AlertDialogTrigger>
                           <AlertDialogContent>
@@ -289,7 +292,7 @@ export default function DepartmentsPage() {
                                 disabled={deletingId === dept.id}
                               >
                                 {deletingId === dept.id && (
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  <Loader2 className="size-4 mr-2 animate-spin" />
                                 )}
                                 Delete
                               </AlertDialogAction>

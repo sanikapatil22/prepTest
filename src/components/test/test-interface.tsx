@@ -694,7 +694,7 @@ export function TestInterface({ testId }: TestInterfaceProps) {
       {/* ---- Top Bar ---- */}
       <header className="flex items-center justify-between border-b bg-background px-4 py-3 shrink-0">
         <div className="flex items-center gap-3">
-          <h1 className="text-lg font-semibold truncate max-w-[300px]">
+          <h1 className="text-lg font-semibold truncate max-w-[300px] text-balance">
             {testTitle}
           </h1>
           <Badge variant="outline" className="hidden sm:inline-flex">
@@ -969,7 +969,7 @@ export function TestInterface({ testId }: TestInterfaceProps) {
               <Button
                 size="sm"
                 onClick={() => setShowSubmitDialog(true)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success/90"
               >
                 <Send className="size-4 mr-1" />
                 Submit Test

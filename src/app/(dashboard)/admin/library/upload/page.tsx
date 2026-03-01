@@ -100,7 +100,7 @@ export default function LibraryBulkUploadPage() {
             Back to Library
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Bulk Upload Questions</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Bulk Upload Questions</h1>
         <p className="text-muted-foreground">
           Upload MCQ questions to the library from a CSV file.
         </p>

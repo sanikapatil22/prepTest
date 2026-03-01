@@ -127,7 +127,7 @@ export function CollegeProfileSection() {
 
               <div className="pt-4">
                 <Button type="submit" disabled={isSaving}>
-                  {isSaving && <Loader2 className="animate-spin" />}
+                  {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                   Save Changes
                 </Button>
               </div>
@@ -182,7 +182,7 @@ export function CollegeProfileSection() {
             </div>
             <div className="pt-4">
               <Button type="submit" disabled={isChangingPassword}>
-                {isChangingPassword && <Loader2 className="animate-spin" />}
+                {isChangingPassword && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Change Password
               </Button>
             </div>

@@ -93,7 +93,7 @@ export default async function StudentTestsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight text-balance">
           {driveTitle ? `Tests - ${driveTitle}` : "Available Tests"}
         </h1>
         <p className="text-muted-foreground">
@@ -175,7 +175,7 @@ export default async function StudentTestsPage({
                       </TableCell>
                       <TableCell className="text-center">
                         {isCompleted ? (
-                          <Badge variant="default" className="bg-green-600">
+                          <Badge variant="default" className="bg-success">
                             <CheckCircle className="size-3 mr-1" />
                             Completed
                           </Badge>

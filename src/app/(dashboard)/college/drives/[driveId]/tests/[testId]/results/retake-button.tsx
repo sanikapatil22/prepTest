@@ -52,7 +52,7 @@ export function RetakeButton({ attemptId, studentName }: RetakeButtonProps) {
     <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button variant="ghost" size="sm">
-          <RotateCcw className="mr-1 h-4 w-4" />
+          <RotateCcw className="mr-1 size-4" />
           Allow Retake
         </Button>
       </AlertDialogTrigger>
@@ -73,9 +73,9 @@ export function RetakeButton({ attemptId, studentName }: RetakeButtonProps) {
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {deleting ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              <Loader2 className="mr-1 size-4 animate-spin" />
             ) : (
-              <RotateCcw className="mr-1 h-4 w-4" />
+              <RotateCcw className="mr-1 size-4" />
             )}
             Allow Retake
           </AlertDialogAction>

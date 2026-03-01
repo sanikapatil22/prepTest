@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -72,18 +73,33 @@ interface EditForm {
 }
 
 export default function StudentsListPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [students, setStudents] = useState<Student[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
-  const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [semesterFilter, setSemesterFilter] = useState("all");
-  const [usnSearch, setUsnSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteFilteredDialogOpen, setDeleteFilteredDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteSingleStudent, setDeleteSingleStudent] = useState<Student | null>(null);
-  const [graduatedFilter, setGraduatedFilter] = useState("all");
+
+  // Derive filter state from URL
+  const departmentFilter = searchParams.get("dept") ?? "all";
+  const semesterFilter = searchParams.get("sem") ?? "all";
+  const graduatedFilter = searchParams.get("graduated") ?? "all";
+  const usnSearch = searchParams.get("q") ?? "";
+
+  function setParam(key: string, value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (!value || value === "all") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+    router.replace(`?${params.toString()}`);
+  }
   const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
   const [promoteFilteredDialogOpen, setPromoteFilteredDialogOpen] = useState(false);
   const [promoting, setPromoting] = useState(false);
@@ -289,7 +305,7 @@ export default function StudentsListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Students</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Students</h1>
           <p className="text-muted-foreground">
             All registered students in your college.
           </p>
@@ -304,19 +320,19 @@ export default function StudentsListPage() {
 
       <div className="flex items-center gap-4">
         <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
-            placeholder="Search by USN..."
+            placeholder="Search by USN…"
             value={usnSearch}
             onChange={(e) => {
-              setUsnSearch(e.target.value);
+              setParam("q", e.target.value);
               setSelected(new Set());
             }}
             className="w-[200px] pl-8"
           />
         </div>
 
-        <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+        <Select value={departmentFilter} onValueChange={(v) => { setParam("dept", v); setSelected(new Set()); }}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Department" />
           </SelectTrigger>
@@ -330,7 +346,7 @@ export default function StudentsListPage() {
           </SelectContent>
         </Select>
 
-        <Select value={semesterFilter} onValueChange={setSemesterFilter}>
+        <Select value={semesterFilter} onValueChange={(v) => { setParam("sem", v); setSelected(new Set()); }}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Semester" />
           </SelectTrigger>
@@ -344,7 +360,7 @@ export default function StudentsListPage() {
           </SelectContent>
         </Select>
 
-        <Select value={graduatedFilter} onValueChange={setGraduatedFilter}>
+        <Select value={graduatedFilter} onValueChange={(v) => { setParam("graduated", v); setSelected(new Set()); }}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -368,14 +384,14 @@ export default function StudentsListPage() {
                 size="sm"
                 onClick={() => setDeleteDialogOpen(true)}
               >
-                <Trash2 className="mr-1 h-4 w-4" />
+                <Trash2 className="mr-1 size-4" />
                 Delete Selected
               </Button>
               <Button
                 size="sm"
                 onClick={() => setPromoteDialogOpen(true)}
               >
-                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                <ArrowUpCircle className="mr-1 size-4" />
                 Promote Selected
               </Button>
             </>
@@ -390,14 +406,14 @@ export default function StudentsListPage() {
                 size="sm"
                 onClick={() => setDeleteFilteredDialogOpen(true)}
               >
-                <Trash2 className="mr-1 h-4 w-4" />
+                <Trash2 className="mr-1 size-4" />
                 Delete All Filtered ({filteredStudents.length})
               </Button>
               <Button
                 size="sm"
                 onClick={() => setPromoteFilteredDialogOpen(true)}
               >
-                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                <ArrowUpCircle className="mr-1 size-4" />
                 Promote All Filtered ({filteredStudents.length})
               </Button>
             </>
@@ -408,7 +424,7 @@ export default function StudentsListPage() {
       <div className="rounded-md border">
         {loading ? (
           <div className="flex h-24 items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
           <Table>
@@ -480,8 +496,8 @@ export default function StudentsListPage() {
                     </TableCell>
                     <TableCell>
                       {student.isGraduated ? (
-                        <Badge variant="default" className="bg-green-600">
-                          <GraduationCap className="mr-1 h-3 w-3" />
+                        <Badge variant="default" className="bg-success">
+                          <GraduationCap className="mr-1 size-3" />
                           Graduated
                         </Badge>
                       ) : student.semester ? (
@@ -511,7 +527,7 @@ export default function StudentsListPage() {
                           onClick={() => openEditDialog(student)}
                           aria-label={`Edit ${student.name}`}
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="size-4" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -519,7 +535,7 @@ export default function StudentsListPage() {
                           onClick={() => setDeleteSingleStudent(student)}
                           aria-label={`Delete ${student.name}`}
                         >
-                          <Trash2 className="h-4 w-4 text-destructive" />
+                          <Trash2 className="size-4 text-destructive" />
                         </Button>
                       </div>
                     </TableCell>
@@ -550,9 +566,9 @@ export default function StudentsListPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (
-                <Trash2 className="mr-1 h-4 w-4" />
+                <Trash2 className="mr-1 size-4" />
               )}
               Delete
             </AlertDialogAction>
@@ -582,9 +598,9 @@ export default function StudentsListPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (
-                <Trash2 className="mr-1 h-4 w-4" />
+                <Trash2 className="mr-1 size-4" />
               )}
               Delete
             </AlertDialogAction>
@@ -616,9 +632,9 @@ export default function StudentsListPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {deleting ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (
-                <Trash2 className="mr-1 h-4 w-4" />
+                <Trash2 className="mr-1 size-4" />
               )}
               Delete All ({filteredStudents.length})
             </AlertDialogAction>
@@ -645,9 +661,9 @@ export default function StudentsListPage() {
               disabled={promoting}
             >
               {promoting ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (
-                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                <ArrowUpCircle className="mr-1 size-4" />
               )}
               Promote
             </AlertDialogAction>
@@ -677,9 +693,9 @@ export default function StudentsListPage() {
               disabled={promoting}
             >
               {promoting ? (
-                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1 size-4 animate-spin" />
               ) : (
-                <ArrowUpCircle className="mr-1 h-4 w-4" />
+                <ArrowUpCircle className="mr-1 size-4" />
               )}
               Promote All ({filteredStudents.length})
             </AlertDialogAction>
@@ -780,7 +796,7 @@ export default function StudentsListPage() {
               Cancel
             </Button>
             <Button onClick={handleSaveEdit} disabled={saving}>
-              {saving && <Loader2 className="mr-1 h-4 w-4 animate-spin" />}
+              {saving && <Loader2 className="mr-1 size-4 animate-spin" />}
               Save Changes
             </Button>
           </DialogFooter>

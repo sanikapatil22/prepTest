@@ -31,7 +31,7 @@ export default async function CollegesListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Colleges</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">Colleges</h1>
           <p className="text-muted-foreground">
             Manage all registered colleges on the platform.
           </p>

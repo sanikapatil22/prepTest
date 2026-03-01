@@ -203,7 +203,10 @@ export default function DriveDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -220,7 +223,7 @@ export default function DriveDetailPage() {
           </Link>
         </Button>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">{drive.title}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">{drive.title}</h1>
           <Badge variant={statusVariant[drive.status] ?? "secondary"}>
             {drive.status}
           </Badge>
@@ -310,7 +313,7 @@ export default function DriveDetailPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSaving}>
-                {isSaving && <Loader2 className="animate-spin" />}
+                {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Save Changes
               </Button>
               <Button type="button" variant="outline" asChild>
@@ -338,7 +341,7 @@ export default function DriveDetailPage() {
                       disabled={isDeleting}
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                     >
-                      {isDeleting && <Loader2 className="animate-spin" />}
+                      {isDeleting && <Loader2 className="mr-2 size-4 animate-spin" />}
                       Delete
                     </AlertDialogAction>
                   </AlertDialogFooter>

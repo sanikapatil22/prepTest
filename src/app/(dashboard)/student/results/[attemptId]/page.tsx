@@ -127,7 +127,7 @@ export default async function ResultDetailPage({
           </Button>
         </Link>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight text-balance">
             {attempt.test.title}
           </h1>
           <p className="text-muted-foreground">
@@ -168,7 +168,7 @@ export default async function ResultDetailPage({
                 : "N/A"}
             </div>
             {passed && (
-              <Badge variant="default" className="mt-1 bg-green-600">
+              <Badge variant="default" className="mt-1 bg-success">
                 Passed
               </Badge>
             )}
@@ -364,7 +364,7 @@ export default async function ResultDetailPage({
                       {wasAnswered && (
                         <div className="flex items-center gap-2">
                           {isCorrect ? (
-                            <Badge className="bg-green-600">
+                            <Badge className="bg-success">
                               All test cases passed
                             </Badge>
                           ) : (

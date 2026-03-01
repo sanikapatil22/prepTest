@@ -80,7 +80,7 @@ export function DeleteUserButton({
           size="icon"
           aria-label={`Delete ${userName}`}
         >
-          <Trash2 className="h-4 w-4 text-destructive" aria-hidden="true" />
+          <Trash2 className="size-4 text-destructive" aria-hidden="true" />
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent>
@@ -126,9 +126,9 @@ export function DeleteUserButton({
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {deleting ? (
-              <Loader2 className="mr-1 h-4 w-4 animate-spin" aria-hidden="true" />
+              <Loader2 className="mr-1 size-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Trash2 className="mr-1 h-4 w-4" aria-hidden="true" />
+              <Trash2 className="mr-1 size-4" aria-hidden="true" />
             )}
             Delete Everything
           </AlertDialogAction>

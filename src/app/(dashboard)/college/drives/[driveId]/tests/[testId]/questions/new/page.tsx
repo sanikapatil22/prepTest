@@ -250,7 +250,7 @@ export default function NewQuestionPage() {
             Back to Test
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Add Question</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Add Question</h1>
         <p className="text-muted-foreground">
           Create a new question for this test.
         </p>
@@ -544,7 +544,7 @@ export default function NewQuestionPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
+                {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Add Question
               </Button>
               <Button type="button" variant="outline" asChild>

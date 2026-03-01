@@ -179,7 +179,10 @@ export default function CollegeDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+        <div className="text-center space-y-3">
+          <Loader2 className="size-6 animate-spin mx-auto text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -198,7 +201,7 @@ export default function CollegeDetailPage() {
           </Link>
         </Button>
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">{college.name}</h1>
+          <h1 className="text-3xl font-bold tracking-tight text-balance">{college.name}</h1>
           <Badge variant={college.isActive ? "default" : "secondary"}>
             {college.isActive ? "Active" : "Inactive"}
           </Badge>
@@ -325,7 +328,7 @@ export default function CollegeDetailPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSaving}>
-                {isSaving && <Loader2 className="animate-spin" />}
+                {isSaving && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Save Changes
               </Button>
               <Button type="button" variant="outline" asChild>
@@ -423,7 +426,7 @@ export default function CollegeDetailPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSavingUsn || !usnPreviewValid}>
-                {isSavingUsn && <Loader2 className="animate-spin" />}
+                {isSavingUsn && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Save USN Structure
               </Button>
             </div>

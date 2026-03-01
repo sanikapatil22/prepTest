@@ -19,7 +19,7 @@ export default function LandingPage() {
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2">
-            <FileText className="h-6 w-6 text-primary" />
+            <FileText className="size-6 text-primary" />
             <span className="text-xl font-bold">PrepZero</span>
           </Link>
           <div className="flex items-center gap-3">
@@ -36,7 +36,7 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="flex-1 flex items-center justify-center py-20 md:py-32 px-4">
         <div className="container mx-auto text-center max-w-3xl">
-          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 text-balance">
             College Placement Tests,{" "}
             <span className="text-primary">Simplified</span>
           </h1>
@@ -48,7 +48,7 @@ export default function LandingPage() {
             <Button size="lg" asChild>
               <Link href="/register/student">
                 Register as Student
-                <ArrowRight className="ml-2 h-4 w-4" />
+                <ArrowRight className="ml-2 size-4" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" asChild>

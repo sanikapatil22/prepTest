@@ -81,7 +81,7 @@ export default function NewTestPage() {
             Back to Drive
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight">Create Test</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Create Test</h1>
         <p className="text-muted-foreground">
           Add a new test to this placement drive.
         </p>
@@ -176,7 +176,7 @@ export default function NewTestPage() {
 
             <div className="flex gap-3 pt-4">
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="animate-spin" />}
+                {isSubmitting && <Loader2 className="mr-2 size-4 animate-spin" />}
                 Create Test
               </Button>
               <Button type="button" variant="outline" asChild>
