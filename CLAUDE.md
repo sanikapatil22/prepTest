@@ -18,7 +18,10 @@ npm run db:seed      # Seed database with test data (tsx prisma/seed.ts)
 npm run db:create-admin  # Create super admin: tsx prisma/create-admin.ts <name> <email> <password>
 ```
 
-No test framework is configured. There are utility scripts in `scripts/` (add-student.ts, fetch-data.ts) run via `tsx scripts/<name>.ts`.
+No test framework is configured. There are utility scripts in `scripts/` run via `tsx scripts/<name>.ts`:
+- `add-student.ts` — Add a single student to a college
+- `fetch-data.ts` — Dump all users, colleges, drives, and tests from the database
+- `register-college-admin.ts` — Register a college admin via API
 
 Judge0 (code execution engine for coding questions):
 ```bash
@@ -36,11 +39,12 @@ docker compose up -d   # Start Judge0 services (server, workers, postgres, redis
 - **Monaco Editor** for in-browser coding questions
 
 ### Route Structure
-- `src/app/(auth)/` — Public auth pages (login, register)
+- `src/app/(auth)/` — Public auth pages (login, register, register/student)
 - `src/app/(dashboard)/admin/` — Super admin dashboard
 - `src/app/(dashboard)/college/` — College admin dashboard
 - `src/app/(dashboard)/student/` — Student dashboard
-- `src/app/api/` — REST API routes (attempts, auth, colleges, drives, stats)
+- `src/app/test/[testId]/` — Test-taking interface (separate from dashboard, uses proctoring)
+- `src/app/api/` — REST API routes (see API Route Patterns below)
 
 ### Key Modules
 - `src/lib/auth.ts` — Better Auth config with Prisma adapter; extends User with `role` and `collegeId` fields
@@ -53,7 +57,7 @@ docker compose up -d   # Start Judge0 services (server, workers, postgres, redis
 - `src/hooks/use-proctoring.ts` — Client-side proctoring hook tracking tab switches, fullscreen exits, copy/paste, right-click, keyboard shortcuts
 
 ### Database Schema
-Defined in `prisma/schema.prisma`. Prisma client output goes to `src/generated/prisma`. Key models: User, College, Department, PlacementDrive, Test, Question, TestAttempt, Answer, TestCase. Import types from `@/generated/prisma`.
+Defined in `prisma/schema.prisma`. Prisma client output goes to `src/generated/prisma`. Key models: User, College, Department, PlacementDrive, Test, Question, TestAttempt, Answer, TestCase. Import types from `@/generated/prisma/client`.
 
 Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_SELECT, MULTI_SELECT, CODING), `DriveStatus` (DRAFT, UPCOMING, ACTIVE, COMPLETED, CANCELLED), `TestStatus` (DRAFT, PUBLISHED, CLOSED), `AttemptStatus` (IN_PROGRESS, SUBMITTED, TIMED_OUT), `CodingLanguage` (PYTHON, JAVA, C, CPP).
 
@@ -76,6 +80,16 @@ Question `options` and `correctOptionIds` are JSON fields. `options` stores `Arr
   ```
 - API routes use role-based filtering: STUDENT sees own data, COLLEGE_ADMIN sees their college's data, SUPER_ADMIN sees all
 - Request bodies are validated with Zod `schema.safeParse(body)`
+
+Key API endpoints:
+- `/api/auth/**` — Better Auth + custom `/register-college-admin`, `/register-student`
+- `/api/colleges` — CRUD + `[collegeId]/usn-structure`
+- `/api/departments` — CRUD scoped to college
+- `/api/drives` — CRUD for placement drives
+- `/api/tests` — CRUD + `[testId]/questions` (CRUD + bulk), `[testId]/start`, `[testId]/submit`
+- `/api/students` — CRUD + `/bulk`, `/profile`, `/search`
+- `/api/attempts` — CRUD + `[attemptId]/answers`, `[attemptId]/run` (code execution), `[attemptId]/violations`
+- `/api/stats` — Aggregated dashboard stats
 
 ### Conventions
 - Path alias: `@/*` maps to `src/*`

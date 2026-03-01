@@ -26,6 +26,7 @@ const adminNav: NavItem[] = [
   { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
   { title: "Colleges", href: "/admin/colleges", icon: Building2 },
   { title: "Users", href: "/admin/users", icon: Users },
+  { title: "Settings", href: "/admin/settings", icon: Settings },
 ];
 
 const collegeNav: NavItem[] = [

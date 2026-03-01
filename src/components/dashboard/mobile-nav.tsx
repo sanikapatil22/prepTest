@@ -30,6 +30,7 @@ const navMap: Record<string, NavItem[]> = {
     { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { title: "Colleges", href: "/admin/colleges", icon: Building2 },
     { title: "Users", href: "/admin/users", icon: Users },
+    { title: "Settings", href: "/admin/settings", icon: Settings },
   ],
   COLLEGE_ADMIN: [
     { title: "Dashboard", href: "/college", icon: LayoutDashboard },

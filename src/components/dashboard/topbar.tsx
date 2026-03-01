@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MobileNav } from "./mobile-nav";
-import { LogOut, User } from "lucide-react";
+import { LogOut, Settings, User } from "lucide-react";
 
 interface TopbarProps {
   user: {
@@ -66,6 +66,20 @@ export function Topbar({ user }: TopbarProps) {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <a
+              href={
+                user.role === "SUPER_ADMIN"
+                  ? "/admin/settings"
+                  : user.role === "COLLEGE_ADMIN"
+                    ? "/college/settings"
+                    : "/student/settings"
+              }
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </a>
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSignOut} className="text-red-600 cursor-pointer">
             <LogOut className="mr-2 h-4 w-4" />
             Sign out
