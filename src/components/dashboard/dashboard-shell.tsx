@@ -12,11 +12,16 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children, user }: DashboardShellProps) {
   return (
-    <div className="min-h-screen bg-muted/40">
+    <div className="min-h-screen">
+      {/* Full-width header sits above everything */}
+      <Topbar user={user} />
+      {/* Sidebar starts below the header */}
       <Sidebar role={user.role} />
-      <div className="md:pl-64 bg-background min-h-screen">
-        <Topbar user={user} />
-        <main className="p-4 md:p-6">{children}</main>
+      {/* Content offset for sidebar + header */}
+      <div className="md:pl-64 pt-16 min-h-screen">
+        <main className="p-6 md:p-8">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );

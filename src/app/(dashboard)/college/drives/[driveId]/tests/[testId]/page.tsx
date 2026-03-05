@@ -44,7 +44,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ArrowLeft, Clock, Loader2, Plus, Trash2, BarChart3, Upload, Eye, X, Search, Users, BookOpen, FileUp } from "lucide-react";
+import { ArrowLeft, Clock, Loader2, Plus, Trash2, BarChart3, Upload, Eye, X, Search, Users, BookOpen, FileUp, Pencil } from "lucide-react";
 import { parseEligibilityCSV } from "@/lib/csv-parser";
 
 function toDatetimeLocal(iso: string): string {
@@ -155,7 +155,6 @@ export default function TestDetailPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [eligibleCount, setEligibleCount] = useState<number | null>(null);
   const [isProcessingCSV, setIsProcessingCSV] = useState(false);
-  const [csvDefaultPassword, setCsvDefaultPassword] = useState("");
   const [csvResult, setCsvResult] = useState<{
     added: number;
     created: number;
@@ -350,12 +349,6 @@ export default function TestDetailPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (csvDefaultPassword.length < 8) {
-      toast.error("Please set a default password (min 8 characters) before uploading");
-      e.target.value = "";
-      return;
-    }
-
     setIsProcessingCSV(true);
     setCsvResult(null);
 
@@ -371,10 +364,7 @@ export default function TestDetailPage() {
       const res = await fetch("/api/students/resolve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          students: parsedStudents,
-          defaultPassword: csvDefaultPassword,
-        }),
+        body: JSON.stringify({ students: parsedStudents }),
       });
 
       if (!res.ok) {
@@ -810,35 +800,23 @@ export default function TestDetailPage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 Upload a CSV with columns: <span className="font-mono">name, usn, email, department</span>.
-                Existing students are matched by USN/email. New students are created with the default password.
+                Existing students are matched by USN/email. New students are created with their USN as the default password.
               </p>
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="csvPassword" className="text-xs">Default password for new students</Label>
-                  <Input
-                    id="csvPassword"
-                    type="password"
-                    placeholder="Min 8 characters"
-                    value={csvDefaultPassword}
-                    onChange={(e) => setCsvDefaultPassword(e.target.value)}
-                  />
-                </div>
-                <label className={`inline-flex items-center gap-2 rounded-md border px-4 h-9 text-sm font-medium cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors shrink-0 ${isProcessingCSV || csvDefaultPassword.length < 8 ? "opacity-50 pointer-events-none" : ""}`}>
-                  {isProcessingCSV ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Upload className="size-4" />
-                  )}
-                  {isProcessingCSV ? "Processing..." : "Upload CSV"}
-                  <input
-                    type="file"
-                    accept=".csv"
-                    className="hidden"
-                    onChange={handleCSVUpload}
-                    disabled={isProcessingCSV || csvDefaultPassword.length < 8}
-                  />
-                </label>
-              </div>
+              <label className={`inline-flex w-fit items-center gap-2 rounded-md border px-4 h-9 text-sm font-medium cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors ${isProcessingCSV ? "opacity-50 pointer-events-none" : ""}`}>
+                {isProcessingCSV ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Upload className="size-4" />
+                )}
+                {isProcessingCSV ? "Processing..." : "Upload CSV"}
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleCSVUpload}
+                  disabled={isProcessingCSV}
+                />
+              </label>
             </div>
 
             {/* CSV Import Results */}
@@ -1052,6 +1030,15 @@ export default function TestDetailPage() {
                       {question.marks}
                     </TableCell>
                     <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link
+                          href={`/college/drives/${params.driveId}/tests/${params.testId}/questions/${question.id}/edit`}
+                          aria-label="Edit question"
+                        >
+                          <Pencil className="size-4" />
+                        </Link>
+                      </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
@@ -1089,6 +1076,7 @@ export default function TestDetailPage() {
                           </AlertDialogFooter>
                         </AlertDialogContent>
                       </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

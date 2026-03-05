@@ -43,24 +43,32 @@ export default async function CollegeDashboardPage() {
       value: driveCount,
       icon: Briefcase,
       description: "Placement drives created",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
     },
     {
       title: "Total Tests",
       value: testCount,
       icon: ClipboardList,
       description: "Tests across all drives",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
     },
     {
       title: "Total Students",
       value: studentCount,
       icon: Users,
       description: "Registered students",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
     },
     {
       title: "Active Tests",
       value: activeTestCount,
       icon: CheckCircle,
       description: "Published and available",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
     },
   ];
 
@@ -85,9 +93,9 @@ export default async function CollegeDashboardPage() {
               <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className="shrink-0 rounded-lg bg-primary/10 p-2">
+              <div className={`shrink-0 rounded-lg p-2.5 ${stat.iconBg}`}>
                 <stat.icon
-                  className="size-4 text-primary"
+                  className={`size-4 ${stat.iconColor}`}
                   aria-hidden="true"
                 />
               </div>

@@ -9,11 +9,20 @@ const optionSchema = z.object({
   text: z.string().min(1),
 });
 
+const testCaseSchema = z.object({
+  input: z.string(),
+  expectedOutput: z.string().min(1),
+  isSample: z.boolean().default(false),
+  order: z.number().int().min(0).default(0),
+});
+
 const updateQuestionSchema = z.object({
   questionText: z.string().min(1).optional(),
+  imageUrl: z.string().optional().nullable(),
   questionType: z.nativeEnum(QuestionType).optional(),
   options: z.array(optionSchema).min(2).optional(),
   correctOptionIds: z.array(z.string()).min(1).optional(),
+  testCases: z.array(testCaseSchema).optional(),
   marks: z.number().int().positive().optional(),
   negativeMarks: z.number().min(0).optional(),
   explanation: z.string().optional().nullable(),
@@ -109,11 +118,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    const { testCases, ...questionData } = parsed.data;
+
     const question = await prisma.$transaction(async (tx) => {
       const updated = await tx.question.update({
         where: { id: questionId },
-        data: parsed.data,
+        data: questionData,
+        include: { testCases: true },
       });
+
+      // If testCases provided (coding question), replace them
+      if (testCases !== undefined) {
+        await tx.testCase.deleteMany({ where: { questionId } });
+        if (testCases.length > 0) {
+          await tx.testCase.createMany({
+            data: testCases.map((tc, idx) => ({
+              questionId,
+              input: tc.input,
+              expectedOutput: tc.expectedOutput,
+              isSample: tc.isSample,
+              order: tc.order ?? idx,
+            })),
+          });
+        }
+      }
 
       // Recalculate totalMarks
       const questions = await tx.question.findMany({
@@ -127,7 +155,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         data: { totalMarks },
       });
 
-      return updated;
+      return tx.question.findUnique({
+        where: { id: questionId },
+        include: { testCases: true },
+      });
     });
 
     return NextResponse.json(question);

@@ -28,24 +28,32 @@ export default async function AdminDashboardPage() {
       value: collegeCount,
       icon: Building2,
       description: "Registered institutions",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
     },
     {
       title: "Total Users",
       value: userCount,
       icon: Users,
       description: "Students, admins & super admins",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
     },
     {
       title: "Total Drives",
       value: driveCount,
       icon: Briefcase,
       description: "Placement drives across colleges",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
     },
     {
       title: "Total Tests",
       value: testCount,
       icon: ClipboardList,
       description: "Tests created across drives",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
     },
   ];
 
@@ -70,9 +78,9 @@ export default async function AdminDashboardPage() {
               <CardTitle className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {stat.title}
               </CardTitle>
-              <div className="shrink-0 rounded-lg bg-primary/10 p-2">
+              <div className={`shrink-0 rounded-lg p-2.5 ${stat.iconBg}`}>
                 <stat.icon
-                  className="size-4 text-primary"
+                  className={`size-4 ${stat.iconColor}`}
                   aria-hidden="true"
                 />
               </div>

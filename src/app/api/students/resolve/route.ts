@@ -15,7 +15,7 @@ const resolveSchema = z.object({
       })
     )
     .min(1),
-  defaultPassword: z.string().min(8),
+  defaultPassword: z.string().min(8).optional(),
 });
 
 // POST /api/students/resolve — find existing students or create new ones, return all
@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
     }
 
     const { students: csvStudents, defaultPassword } = parsed.data;
+    // Pre-hash a shared default password if provided; otherwise each student
+    // gets their own USN as password (hashed per-student in the loop below).
+    const sharedHashedPw = defaultPassword
+      ? await hashPassword(defaultPassword)
+      : null;
     const collegeId = user.collegeId;
 
     // Fetch college departments for mapping
@@ -111,8 +116,6 @@ export async function POST(request: NextRequest) {
       existingUsers.filter((u) => u.usn).map((u) => [u.usn!.toUpperCase(), u])
     );
 
-    const hashedPw = await hashPassword(defaultPassword);
-
     const found: typeof existingUsers = [];
     let created = 0;
     const errors: string[] = [];
@@ -136,6 +139,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
+        const hashedPw = sharedHashedPw ?? await hashPassword(usn);
         const newUser = await prisma.$transaction(async (tx) => {
           const u = await tx.user.create({
             data: {

@@ -9,7 +9,6 @@ import {
   Users,
   GraduationCap,
   ClipboardList,
-  Zap,
   BarChart3,
   Settings,
   Briefcase,
@@ -72,18 +71,9 @@ export function Sidebar({ role }: { role: string }) {
   const navItems = getNavItems(role);
 
   return (
-    <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-sidebar text-sidebar-foreground">
-      <div className="flex items-center h-16 px-6 border-b border-sidebar-border">
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Zap className="size-4 text-sidebar-primary-foreground" aria-hidden="true" />
-          </div>
-          <span className="text-lg font-bold tracking-tight text-sidebar-foreground">PrepZero</span>
-        </Link>
-      </div>
-
+    <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:top-16 md:bottom-0 md:left-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border">
       <ScrollArea className="flex-1 py-4">
-        <nav className="px-3 space-y-1" aria-label="Main navigation">
+        <nav className="px-3 space-y-0.5 relative" aria-label="Main navigation">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href ||
@@ -96,15 +86,21 @@ export function Sidebar({ role }: { role: string }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+                  "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring",
                   isActive
-                    ? "bg-sidebar-accent text-sidebar-primary-foreground font-medium"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground/90"
                 )}
                 aria-current={isActive ? "page" : undefined}
               >
+                {isActive && (
+                  <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-r-full bg-sidebar-primary" aria-hidden="true" />
+                )}
                 <item.icon
-                  className={cn("size-4 shrink-0", isActive && "text-sidebar-primary")}
+                  className={cn(
+                    "size-4 shrink-0 transition-colors",
+                    isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50"
+                  )}
                   aria-hidden="true"
                 />
                 {item.title}
@@ -114,10 +110,10 @@ export function Sidebar({ role }: { role: string }) {
         </nav>
       </ScrollArea>
 
-      <div className="border-t border-sidebar-border p-4">
-        <div className="rounded-lg bg-sidebar-accent px-3 py-2.5">
-          <p className="text-xs text-sidebar-foreground/60">Signed in as</p>
-          <p className="text-xs font-medium mt-0.5 text-sidebar-foreground">
+      <div className="border-t border-sidebar-border p-3">
+        <div className="rounded-lg bg-sidebar-accent/60 px-3 py-2.5">
+          <p className="text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/40">Role</p>
+          <p className="text-xs font-semibold mt-0.5 text-sidebar-foreground/80">
             {roleLabel[role] ?? role}
           </p>
         </div>

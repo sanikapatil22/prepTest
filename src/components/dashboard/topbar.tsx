@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MobileNav } from "./mobile-nav";
 import { ThemeToggle } from "./theme-toggle";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, Zap } from "lucide-react";
 
 interface TopbarProps {
   user: {
@@ -53,8 +53,18 @@ export function Topbar({ user }: TopbarProps) {
   const role = roleMeta[user.role] ?? { label: user.role, variant: "secondary" as const };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center gap-2 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6">
+    <header className="fixed top-0 left-0 right-0 z-50 flex h-16 items-center gap-3 border-b border-sidebar-border bg-sidebar text-sidebar-foreground px-4 md:px-6">
+      {/* Logo — visible on desktop (mobile shows in sheet) */}
+      <Link href="/" className="hidden md:flex items-center gap-2.5 w-52 shrink-0">
+        <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary">
+          <Zap className="size-4 text-sidebar-primary-foreground" aria-hidden="true" />
+        </div>
+        <span className="text-lg font-bold tracking-tight">PrepZero</span>
+      </Link>
+
+      {/* Mobile hamburger */}
       <MobileNav role={user.role} />
+
       <div className="flex-1" />
       <ThemeToggle />
       <DropdownMenu>
