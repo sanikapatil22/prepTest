@@ -74,6 +74,7 @@ export default function ImportLibraryPage() {
     setIsLoading(true);
     try {
       const searchParams = new URLSearchParams();
+      searchParams.set("scope", "all");
       if (search) searchParams.set("search", search);
       if (category) searchParams.set("category", category);
       if (difficulty) searchParams.set("difficulty", difficulty);
@@ -96,7 +97,7 @@ export default function ImportLibraryPage() {
   }, [fetchQuestions]);
 
   useEffect(() => {
-    fetch("/api/library/categories")
+    fetch("/api/library/categories?scope=all")
       .then((res) => res.json())
       .then((cats: string[]) => setCategories(cats))
       .catch(() => {});

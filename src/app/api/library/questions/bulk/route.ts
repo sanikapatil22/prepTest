@@ -36,8 +36,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { id: string; role: string };
-    if (user.role !== "SUPER_ADMIN") {
+    const user = session.user as { id: string; role: string; collegeId: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -52,6 +52,10 @@ export async function POST(request: NextRequest) {
 
     const { questions } = parsed.data;
 
+    // SUPER_ADMIN creates public questions (collegeId: null)
+    // COLLEGE_ADMIN creates private questions (collegeId: user.collegeId)
+    const collegeId = user.role === "COLLEGE_ADMIN" ? user.collegeId : null;
+
     const result = await prisma.$transaction(async (tx) => {
       await tx.libraryQuestion.createMany({
         data: questions.map((q) => ({
@@ -65,6 +69,7 @@ export async function POST(request: NextRequest) {
           category: q.category,
           difficulty: q.difficulty,
           createdById: user.id,
+          collegeId,
         })),
       });
 

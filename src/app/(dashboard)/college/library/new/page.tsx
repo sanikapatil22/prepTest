@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -24,16 +24,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ArrowLeft, Loader2, Plus, Trash2, Code2, Eye, EyeOff } from "lucide-react";
-import { QuestionText } from "@/components/ui/question-text";
+import { ArrowLeft, Loader2, Plus, Trash2 } from "lucide-react";
 
 interface Option {
   id: string;
@@ -59,17 +50,9 @@ function generateTestCaseId() {
   return `tc_${Date.now()}_${testCaseCounter}`;
 }
 
-export default function NewQuestionPage() {
-  const params = useParams<{ driveId: string; testId: string }>();
+export default function NewLibraryQuestionPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
-  const [showPushDialog, setShowPushDialog] = useState(false);
-  const [isPushing, setIsPushing] = useState(false);
-  const [lastSubmittedData, setLastSubmittedData] = useState<Record<string, unknown> | null>(null);
-  const [pushCategory, setPushCategory] = useState("");
-  const [pushDifficulty, setPushDifficulty] = useState("MEDIUM");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [questionText, setQuestionText] = useState("");
   const [questionType, setQuestionType] = useState("SINGLE_SELECT");
@@ -83,13 +66,23 @@ export default function NewQuestionPage() {
   const [marks, setMarks] = useState(1);
   const [negativeMarks, setNegativeMarks] = useState(0);
   const [explanation, setExplanation] = useState("");
+  const [category, setCategory] = useState("");
+  const [difficulty, setDifficulty] = useState("MEDIUM");
 
-  // Coding question state
+  const [categories, setCategories] = useState<string[]>([]);
+
   const [testCases, setTestCases] = useState<TestCaseInput[]>([
     { id: generateTestCaseId(), input: "", expectedOutput: "", isSample: true },
   ]);
 
   const isCoding = questionType === "CODING";
+
+  useEffect(() => {
+    fetch("/api/library/categories?scope=private")
+      .then((res) => res.json())
+      .then((cats: string[]) => setCategories(cats))
+      .catch(() => {});
+  }, []);
 
   function addOption() {
     setOptions((prev) => [...prev, { id: generateOptionId(), text: "" }]);
@@ -105,9 +98,7 @@ export default function NewQuestionPage() {
   }
 
   function updateOptionText(id: string, text: string) {
-    setOptions((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, text } : o))
-    );
+    setOptions((prev) => prev.map((o) => (o.id === id ? { ...o, text } : o)));
   }
 
   function handleSingleSelectChange(optionId: string) {
@@ -127,7 +118,6 @@ export default function NewQuestionPage() {
     setCorrectOptionIds([]);
   }
 
-  // Test case management
   function addTestCase() {
     setTestCases((prev) => [
       ...prev,
@@ -157,17 +147,24 @@ export default function NewQuestionPage() {
       return;
     }
 
+    if (!category.trim()) {
+      toast.error("Category is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    let body: Record<string, unknown>;
+
     if (isCoding) {
-      // Validate test cases
       const validTestCases = testCases.filter((tc) => tc.expectedOutput.trim());
       if (validTestCases.length === 0) {
         toast.error("At least 1 test case with expected output is required");
+        setIsSubmitting(false);
         return;
       }
 
-      setIsSubmitting(true);
-
-      const data: Record<string, unknown> = {
+      body = {
         questionText,
         questionType: "CODING",
         testCases: validTestCases.map((tc, idx) => ({
@@ -179,46 +176,23 @@ export default function NewQuestionPage() {
         marks,
         negativeMarks,
         explanation: explanation || undefined,
+        category,
+        difficulty,
       };
-
-      try {
-        const res = await fetch(`/api/tests/${params.testId}/questions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Failed to add question");
-        }
-
-        toast.success("Coding question added successfully");
-        setLastSubmittedData(data);
-        setShowPushDialog(true);
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Something went wrong"
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
     } else {
-      // MCQ flow
       const filledOptions = options.filter((o) => o.text.trim());
       if (filledOptions.length < 2) {
         toast.error("At least 2 options with text are required");
+        setIsSubmitting(false);
         return;
       }
-
       if (correctOptionIds.length === 0) {
         toast.error("Please select at least one correct option");
+        setIsSubmitting(false);
         return;
       }
 
-      setIsSubmitting(true);
-
-      const data: Record<string, unknown> = {
+      body = {
         questionText,
         questionType,
         options: filledOptions,
@@ -226,83 +200,44 @@ export default function NewQuestionPage() {
         marks,
         negativeMarks,
         explanation: explanation || undefined,
+        category,
+        difficulty,
       };
-
-      try {
-        const res = await fetch(`/api/tests/${params.testId}/questions`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Failed to add question");
-        }
-
-        toast.success("Question added successfully");
-        setLastSubmittedData(data);
-        setShowPushDialog(true);
-      } catch (error) {
-        toast.error(
-          error instanceof Error ? error.message : "Something went wrong"
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
     }
-  }
 
-  async function handlePushToLibrary() {
-    if (!lastSubmittedData || !pushCategory.trim()) {
-      toast.error("Please enter a category");
-      return;
-    }
-    setIsPushing(true);
     try {
-      const libraryData = {
-        ...lastSubmittedData,
-        category: pushCategory.trim(),
-        difficulty: pushDifficulty,
-      };
       const res = await fetch("/api/library/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(libraryData),
+        body: JSON.stringify(body),
       });
+
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || "Failed to push to library");
+        throw new Error(error.error || "Failed to create question");
       }
-      toast.success("Question saved to your library");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to push to library");
-    } finally {
-      setIsPushing(false);
-      setShowPushDialog(false);
-      router.push(`/college/drives/${params.driveId}/tests/${params.testId}`);
-    }
-  }
 
-  function handleSkipPush() {
-    setShowPushDialog(false);
-    router.push(`/college/drives/${params.driveId}/tests/${params.testId}`);
+      toast.success("Question added to library");
+      router.push("/college/library?tab=private");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
     <div className="space-y-6">
       <div>
         <Button variant="ghost" size="sm" asChild className="mb-2">
-          <Link
-            href={`/college/drives/${params.driveId}/tests/${params.testId}`}
-          >
+          <Link href="/college/library?tab=private">
             <ArrowLeft />
-            Back to Test
+            Back to Library
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold tracking-tight text-balance">Add Question</h1>
+        <h1 className="text-3xl font-bold tracking-tight text-balance">Add to My Library</h1>
         <p className="text-muted-foreground">
-          Create a new question for this test.
+          Create a new question for your college&apos;s private library.
         </p>
       </div>
 
@@ -321,97 +256,60 @@ export default function NewQuestionPage() {
               <Label htmlFor="questionText">
                 Question Text <span className="text-destructive">*</span>
               </Label>
-              <div className="flex items-center gap-1 mb-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs gap-1"
-                  onClick={() => {
-                    const ta = textareaRef.current;
-                    if (!ta) return;
-                    const start = ta.selectionStart;
-                    const end = ta.selectionEnd;
-                    const selected = questionText.slice(start, end);
-                    const codeBlock = selected
-                      ? "```\n" + selected + "\n```"
-                      : "```\n// paste code here\n```";
-                    const newText =
-                      questionText.slice(0, start) +
-                      codeBlock +
-                      questionText.slice(end);
-                    setQuestionText(newText);
-                    setShowPreview(false);
-                    setTimeout(() => {
-                      ta.focus();
-                      const cursor = start + codeBlock.length;
-                      ta.setSelectionRange(cursor, cursor);
-                    }, 0);
-                  }}
-                >
-                  <Code2 className="size-3.5" />
-                  Code Block
-                </Button>
-                <div className="flex-1" />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-2 text-xs gap-1"
-                  onClick={() => setShowPreview(!showPreview)}
-                >
-                  {showPreview ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-                  {showPreview ? "Edit" : "Preview"}
-                </Button>
-              </div>
-              {showPreview ? (
-                <div className="min-h-[120px] rounded-md border bg-background p-3">
-                  {questionText.trim() ? (
-                    <QuestionText>{questionText}</QuestionText>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">Nothing to preview</p>
-                  )}
-                </div>
-              ) : (
-                <Textarea
-                  ref={textareaRef}
-                  id="questionText"
-                  value={questionText}
-                  onChange={(e) => setQuestionText(e.target.value)}
-                  placeholder={
-                    isCoding
-                      ? "Describe the coding problem... (supports Markdown — use ``` for code blocks)"
-                      : "Enter your question here... (supports Markdown — use ``` for code blocks)"
-                  }
-                  rows={4}
-                  className="font-mono text-sm"
+              <Textarea
+                id="questionText"
+                value={questionText}
+                onChange={(e) => setQuestionText(e.target.value)}
+                placeholder={isCoding ? "Describe the coding problem..." : "Enter your question here..."}
+                rows={4}
+                required
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>
+                  Category <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g. Math, DSA, DBMS"
+                  list="category-suggestions"
                   required
                 />
-              )}
-              <p className="text-xs text-muted-foreground">
-                Supports Markdown. Wrap code in <code className="rounded bg-muted px-1 py-0.5 font-mono text-[0.85em]">```</code> fences for proper formatting.
-              </p>
+                <datalist id="category-suggestions">
+                  {categories.map((cat) => (
+                    <option key={cat} value={cat} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Difficulty</Label>
+                <Select value={difficulty} onValueChange={setDifficulty}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="EASY">Easy</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HARD">Hard</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="questionType">Question Type</Label>
-              <Select
-                value={questionType}
-                onValueChange={handleQuestionTypeChange}
-              >
+              <Select value={questionType} onValueChange={handleQuestionTypeChange}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="SINGLE_SELECT">
-                    Single Select (Radio)
-                  </SelectItem>
-                  <SelectItem value="MULTI_SELECT">
-                    Multi Select (Checkbox)
-                  </SelectItem>
-                  <SelectItem value="CODING">
-                    Coding Challenge
-                  </SelectItem>
+                  <SelectItem value="SINGLE_SELECT">Single Select (Radio)</SelectItem>
+                  <SelectItem value="MULTI_SELECT">Multi Select (Checkbox)</SelectItem>
+                  <SelectItem value="CODING">Coding Challenge</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -423,12 +321,7 @@ export default function NewQuestionPage() {
                   <Label>
                     Options <span className="text-destructive">*</span>
                   </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addOption}
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={addOption}>
                     <Plus className="size-4" />
                     Add Option
                   </Button>
@@ -441,21 +334,13 @@ export default function NewQuestionPage() {
                     className="space-y-3"
                   >
                     {options.map((option, index) => (
-                      <div
-                        key={option.id}
-                        className="flex items-center gap-3"
-                      >
-                        <RadioGroupItem
-                          value={option.id}
-                          id={`radio-${option.id}`}
-                        />
+                      <div key={option.id} className="flex items-center gap-3">
+                        <RadioGroupItem value={option.id} id={`radio-${option.id}`} />
                         <Input
                           className="flex-1"
                           placeholder={`Option ${index + 1}`}
                           value={option.text}
-                          onChange={(e) =>
-                            updateOptionText(option.id, e.target.value)
-                          }
+                          onChange={(e) => updateOptionText(option.id, e.target.value)}
                         />
                         <Button
                           type="button"
@@ -472,27 +357,19 @@ export default function NewQuestionPage() {
                 ) : (
                   <div className="space-y-3">
                     {options.map((option, index) => (
-                      <div
-                        key={option.id}
-                        className="flex items-center gap-3"
-                      >
+                      <div key={option.id} className="flex items-center gap-3">
                         <Checkbox
                           id={`check-${option.id}`}
                           checked={correctOptionIds.includes(option.id)}
                           onCheckedChange={(checked) =>
-                            handleMultiSelectChange(
-                              option.id,
-                              checked as boolean
-                            )
+                            handleMultiSelectChange(option.id, checked as boolean)
                           }
                         />
                         <Input
                           className="flex-1"
                           placeholder={`Option ${index + 1}`}
                           value={option.text}
-                          onChange={(e) =>
-                            updateOptionText(option.id, e.target.value)
-                          }
+                          onChange={(e) => updateOptionText(option.id, e.target.value)}
                         />
                         <Button
                           type="button"
@@ -522,12 +399,7 @@ export default function NewQuestionPage() {
                   <Label>
                     Test Cases <span className="text-destructive">*</span>
                   </Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={addTestCase}
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={addTestCase}>
                     <Plus className="size-4" />
                     Add Test Case
                   </Button>
@@ -537,9 +409,7 @@ export default function NewQuestionPage() {
                   <Card key={tc.id} className="border-dashed">
                     <CardContent className="pt-4 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">
-                          Test Case {index + 1}
-                        </span>
+                        <span className="text-sm font-medium">Test Case {index + 1}</span>
                         <div className="flex items-center gap-3">
                           <div className="flex items-center gap-2">
                             <Checkbox
@@ -549,10 +419,7 @@ export default function NewQuestionPage() {
                                 updateTestCase(tc.id, "isSample", checked as boolean)
                               }
                             />
-                            <Label
-                              htmlFor={`sample-${tc.id}`}
-                              className="text-xs text-muted-foreground"
-                            >
+                            <Label htmlFor={`sample-${tc.id}`} className="text-xs text-muted-foreground">
                               Sample (visible to students)
                             </Label>
                           </div>
@@ -572,9 +439,7 @@ export default function NewQuestionPage() {
                         <Label className="text-xs">Input</Label>
                         <Textarea
                           value={tc.input}
-                          onChange={(e) =>
-                            updateTestCase(tc.id, "input", e.target.value)
-                          }
+                          onChange={(e) => updateTestCase(tc.id, "input", e.target.value)}
                           placeholder="Enter input (can be empty)"
                           rows={2}
                           className="font-mono text-sm"
@@ -583,18 +448,11 @@ export default function NewQuestionPage() {
 
                       <div className="space-y-2">
                         <Label className="text-xs">
-                          Expected Output{" "}
-                          <span className="text-destructive">*</span>
+                          Expected Output <span className="text-destructive">*</span>
                         </Label>
                         <Textarea
                           value={tc.expectedOutput}
-                          onChange={(e) =>
-                            updateTestCase(
-                              tc.id,
-                              "expectedOutput",
-                              e.target.value
-                            )
-                          }
+                          onChange={(e) => updateTestCase(tc.id, "expectedOutput", e.target.value)}
                           placeholder="Enter expected output"
                           rows={2}
                           className="font-mono text-sm"
@@ -604,11 +462,6 @@ export default function NewQuestionPage() {
                     </CardContent>
                   </Card>
                 ))}
-
-                <p className="text-xs text-muted-foreground">
-                  Mark test cases as &ldquo;Sample&rdquo; to make them visible
-                  to students. Hidden test cases are used only for grading.
-                </p>
               </div>
             )}
 
@@ -623,7 +476,6 @@ export default function NewQuestionPage() {
                   onChange={(e) => setMarks(parseInt(e.target.value) || 1)}
                 />
               </div>
-
               <div className="space-y-2">
                 <Label htmlFor="negativeMarks">Negative Marks</Label>
                 <Input
@@ -632,9 +484,7 @@ export default function NewQuestionPage() {
                   min={0}
                   step="0.25"
                   value={negativeMarks}
-                  onChange={(e) =>
-                    setNegativeMarks(parseFloat(e.target.value) || 0)
-                  }
+                  onChange={(e) => setNegativeMarks(parseFloat(e.target.value) || 0)}
                 />
               </div>
             </div>
@@ -645,7 +495,7 @@ export default function NewQuestionPage() {
                 id="explanation"
                 value={explanation}
                 onChange={(e) => setExplanation(e.target.value)}
-                placeholder="Explain the correct answer (shown after submission)"
+                placeholder="Explain the correct answer"
                 rows={3}
               />
             </div>
@@ -656,63 +506,12 @@ export default function NewQuestionPage() {
                 Add Question
               </Button>
               <Button type="button" variant="outline" asChild>
-                <Link
-                  href={`/college/drives/${params.driveId}/tests/${params.testId}`}
-                >
-                  Cancel
-                </Link>
+                <Link href="/college/library?tab=private">Cancel</Link>
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
-
-      <Dialog open={showPushDialog} onOpenChange={(open) => {
-        if (!open) handleSkipPush();
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save to Library?</DialogTitle>
-            <DialogDescription>
-              Would you like to also save this question to your college&apos;s private
-              library for reuse in future tests?
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="push-category">Category</Label>
-              <Input
-                id="push-category"
-                placeholder="e.g. Aptitude, DSA, DBMS..."
-                value={pushCategory}
-                onChange={(e) => setPushCategory(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="push-difficulty">Difficulty</Label>
-              <Select value={pushDifficulty} onValueChange={setPushDifficulty}>
-                <SelectTrigger id="push-difficulty">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EASY">Easy</SelectItem>
-                  <SelectItem value="MEDIUM">Medium</SelectItem>
-                  <SelectItem value="HARD">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleSkipPush} disabled={isPushing}>
-              Skip
-            </Button>
-            <Button onClick={handlePushToLibrary} disabled={isPushing || !pushCategory.trim()}>
-              {isPushing && <Loader2 className="mr-2 size-4 animate-spin" />}
-              Save to Library
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

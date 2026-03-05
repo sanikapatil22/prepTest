@@ -46,9 +46,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch library questions
+    // Fetch library questions — only public or belonging to the college
+    const collegeId = test.drive.collegeId;
     const libraryQuestions = await prisma.libraryQuestion.findMany({
-      where: { id: { in: questionIds } },
+      where: {
+        id: { in: questionIds },
+        OR: [
+          { collegeId: null },        // public questions
+          { collegeId: collegeId },    // college's own private questions
+        ],
+      },
       include: { testCases: { orderBy: { order: "asc" } } },
     });
 

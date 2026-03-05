@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { id: string; role: string };
+    const user = session.user as { id: string; role: string; collegeId: string | null };
     if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get("difficulty");
     const type = searchParams.get("type");
     const search = searchParams.get("search");
+    const scope = searchParams.get("scope"); // "public", "private", "all"
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
 
@@ -76,6 +77,25 @@ export async function GET(request: NextRequest) {
     }
     if (search) {
       where.questionText = { contains: search, mode: "insensitive" };
+    }
+
+    // Scope-based filtering for public/private library sections
+    if (user.role === "SUPER_ADMIN") {
+      if (scope === "all") {
+        // Show all questions — no collegeId filter
+      } else {
+        // Default: show only public questions (collegeId: null)
+        where.collegeId = null;
+      }
+    } else if (user.role === "COLLEGE_ADMIN") {
+      if (scope === "private") {
+        where.collegeId = user.collegeId;
+      } else if (scope === "all") {
+        where.OR = [{ collegeId: null }, { collegeId: user.collegeId }];
+      } else {
+        // Default (scope=public or no scope): show only public
+        where.collegeId = null;
+      }
     }
 
     const [questions, total] = await Promise.all([
@@ -113,8 +133,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { id: string; role: string };
-    if (user.role !== "SUPER_ADMIN") {
+    const user = session.user as { id: string; role: string; collegeId: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -143,6 +163,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // SUPER_ADMIN creates public questions (collegeId: null)
+    // COLLEGE_ADMIN creates private questions (collegeId: user.collegeId)
+    const collegeId = user.role === "COLLEGE_ADMIN" ? user.collegeId : null;
+
     const question = await prisma.$transaction(async (tx) => {
       const created = await tx.libraryQuestion.create({
         data: {
@@ -156,6 +180,7 @@ export async function POST(request: NextRequest) {
           category: data.category,
           difficulty: data.difficulty,
           createdById: user.id,
+          collegeId,
         },
         include: { testCases: true },
       });

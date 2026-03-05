@@ -42,7 +42,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { role: string };
+    const user = session.user as { id: string; role: string; collegeId: string | null };
     if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -57,6 +57,11 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    // COLLEGE_ADMIN can view public questions OR their own private questions
+    if (user.role === "COLLEGE_ADMIN" && question.collegeId !== null && question.collegeId !== user.collegeId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(question);
@@ -76,14 +81,24 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { role: string };
-    if (user.role !== "SUPER_ADMIN") {
+    const user = session.user as { id: string; role: string; collegeId: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const existing = await prisma.libraryQuestion.findUnique({ where: { id: questionId } });
     if (!existing) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    // SUPER_ADMIN can only edit public questions (collegeId === null)
+    if (user.role === "SUPER_ADMIN" && existing.collegeId !== null) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // COLLEGE_ADMIN can only edit their own private questions
+    if (user.role === "COLLEGE_ADMIN" && existing.collegeId !== user.collegeId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -151,14 +166,24 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { role: string };
-    if (user.role !== "SUPER_ADMIN") {
+    const user = session.user as { id: string; role: string; collegeId: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const existing = await prisma.libraryQuestion.findUnique({ where: { id: questionId } });
     if (!existing) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    // SUPER_ADMIN can only delete public questions (collegeId === null)
+    if (user.role === "SUPER_ADMIN" && existing.collegeId !== null) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // COLLEGE_ADMIN can only delete their own private questions
+    if (user.role === "COLLEGE_ADMIN" && existing.collegeId !== user.collegeId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.libraryQuestion.delete({ where: { id: questionId } });
