@@ -135,7 +135,7 @@ export default function LibraryBulkUploadPage() {
                 <li>
                   Same columns as test CSV, plus{" "}
                   <code className="bg-muted px-1 rounded text-xs">category</code> (required) and{" "}
-                  <code className="bg-muted px-1 rounded text-xs">difficulty</code> (EASY/MEDIUM/HARD, default MEDIUM)
+                  <code className="bg-muted px-1 rounded text-xs">difficulty</code> (required: EASY, MEDIUM, or HARD)
                 </li>
                 <li>
                   <code className="bg-muted px-1 rounded text-xs">option_1</code> to{" "}

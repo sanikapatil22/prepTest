@@ -65,7 +65,7 @@ export default function ImportLibraryPage() {
   const [difficulty, setDifficulty] = useState("");
   const [type, setType] = useState("");
   const [page, setPage] = useState(1);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; isGlobal: boolean }[]>([]);
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isImporting, setIsImporting] = useState(false);
@@ -97,8 +97,8 @@ export default function ImportLibraryPage() {
 
   useEffect(() => {
     fetch("/api/library/categories")
-      .then((res) => res.json())
-      .then((cats: string[]) => setCategories(cats))
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((cats: { id: string; name: string; isGlobal: boolean }[]) => setCategories(Array.isArray(cats) ? cats : []))
       .catch(() => {});
   }, []);
 
@@ -197,7 +197,7 @@ export default function ImportLibraryPage() {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
