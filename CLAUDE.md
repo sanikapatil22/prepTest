@@ -31,6 +31,7 @@ Judge0 (code execution engine for coding questions):
 ```bash
 docker compose up -d   # Start Judge0 services (server, workers, postgres, redis)
 ```
+Judge0 config is in `judge0.conf` (referenced by `docker-compose.yml`).
 
 ## Architecture
 
@@ -61,14 +62,15 @@ docker compose up -d   # Start Judge0 services (server, workers, postgres, redis
 - `src/lib/student-csv-parser.ts` — CSV parsing for bulk student import with USN-based department extraction
 - `src/lib/library-csv-parser.ts` — CSV parsing for question library bulk upload (adds `category` and `difficulty` columns)
 - `src/middleware.ts` — Route protection; checks `better-auth.session_token` cookie, redirects unauthenticated users to `/login`
+- `src/lib/spreadsheet.ts` — Converts Excel (.xlsx/.xls) and CSV files to CSV text strings for the CSV parsers
 - `src/hooks/use-proctoring.ts` — Client-side proctoring hook tracking tab switches, fullscreen exits, copy/paste. Auto-submits when `maxViolations` threshold is reached. Allows copy/paste within `.monaco-editor`.
 
 ### Database Schema
 Defined in `prisma/schema.prisma`. Prisma client output goes to `src/generated/prisma`. Prisma config in `prisma.config.ts`. Import types from `@/generated/prisma/client`.
 
-Key models: User, College, Department, PlacementDrive, Test, Question, TestAttempt, Answer, TestCase, LibraryQuestion, LibraryTestCase.
+Key models: User, College, Department, PlacementDrive, Test, Question, TestAttempt, Answer, TestCase, LibraryQuestion, LibraryTestCase, Category.
 
-Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_SELECT, MULTI_SELECT, CODING), `DriveStatus` (DRAFT, UPCOMING, ACTIVE, COMPLETED, CANCELLED), `TestStatus` (DRAFT, PUBLISHED, CLOSED), `AttemptStatus` (IN_PROGRESS, SUBMITTED, TIMED_OUT), `CodingLanguage` (PYTHON, JAVA, C, CPP), `Difficulty` (EASY, MEDIUM, HARD).
+Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_SELECT, MULTI_SELECT, CODING), `DriveStatus` (DRAFT, UPCOMING, ACTIVE, COMPLETED, CANCELLED), `TestStatus` (DRAFT, PUBLISHED, CLOSED), `AttemptStatus` (IN_PROGRESS, SUBMITTED, TIMED_OUT), `CodingLanguage` (PYTHON, JAVA, C, CPP), `Difficulty` (EASY, MEDIUM, HARD), `ResultVisibility` (AFTER_SUBMISSION, MANUAL_RELEASE).
 
 **JSON field patterns:** Question `options` stores `Array<{id: string, text: string}>`, `correctOptionIds` stores `string[]`. Answer `selectedOptionIds` follows the same `string[]` pattern.
 
@@ -79,6 +81,8 @@ Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_
 **TestAttempt proctoring fields:** `tabSwitchCount`, `fullscreenExitCount`, `copyPasteAttempts`, `totalViolations`, `maxViolations` (default 5), `autoSubmitted`.
 
 **Library system:** `LibraryQuestion` stores reusable questions with `category` (string) and `difficulty` (enum). `LibraryTestCase` stores test cases for library coding questions. Library questions can be imported into specific tests.
+
+**Category system:** `Category` model stores managed categories with `@@unique([name, collegeId])`. Categories are scoped: global (`collegeId: null`, managed by SUPER_ADMIN) or college-specific (managed by COLLEGE_ADMIN). College admins see both global and their own categories.
 
 ### Authentication & Authorization
 - Middleware checks `better-auth.session_token` (dev) or `__Secure-better-auth.session_token` (prod) cookie on all non-public routes
@@ -101,14 +105,14 @@ Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_
 
 Key API endpoints:
 - `/api/auth/**` — Better Auth + custom `/register-college-admin`, `/register-student`
-- `/api/colleges` — CRUD + `/usn-structure` (reads college from auth session, no collegeId param)
+- `/api/colleges` — CRUD + `/usn-structure` (reads college from auth session, no collegeId param) + `[collegeId]/stats`
 - `/api/departments` — CRUD scoped to college
 - `/api/drives` — CRUD for placement drives
 - `/api/tests` — CRUD + `[testId]/questions` (CRUD + bulk), `[testId]/start`, `[testId]/submit`, `[testId]/monitor`
 - `/api/students` — CRUD + `/bulk`, `/profile`, `/resolve`, `/validate`
 - `/api/attempts` — CRUD + `[attemptId]/answers`, `[attemptId]/run` (code execution), `[attemptId]/violations`
 - `/api/library/questions` — CRUD + `/bulk`, `/import` (import into test)
-- `/api/library/categories` — List all question categories
+- `/api/library/categories` — CRUD for managed categories + `[categoryId]` (PUT rename, DELETE)
 - `/api/users/[userId]` — DELETE (super admin only)
 - `/api/stats` — Aggregated dashboard stats
 

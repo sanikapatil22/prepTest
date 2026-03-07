@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma, TestStatus, ResultVisibility } from "@/generated/prisma/client";
 import { getSession } from "@/lib/auth-guard";
 import { isStudentEligible } from "@/lib/test-eligibility";
+import { sendNotificationForTest } from "@/lib/test-notifications";
 
 const updateTestSchema = z.object({
   title: z.string().min(1).optional(),
@@ -121,6 +122,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updateData.startTime = parsed.data.startTime
         ? new Date(parsed.data.startTime)
         : null;
+      // Reset notification flag when start time changes so students get re-notified
+      updateData.notificationSent = false;
     }
     if (parsed.data.endTime !== undefined) {
       updateData.endTime = parsed.data.endTime
@@ -153,6 +156,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         _count: { select: { questions: true, attempts: true } },
       },
     });
+
+    // If test is published with a startTime, try to send notifications (fire-and-forget)
+    if (test.status === "PUBLISHED" && test.startTime) {
+      sendNotificationForTest(testId).catch((err) =>
+        console.error("Background notification error:", err)
+      );
+    }
 
     return NextResponse.json(test);
   } catch (error) {

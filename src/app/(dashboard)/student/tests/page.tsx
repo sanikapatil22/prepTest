@@ -19,6 +19,7 @@ import {
   Building2,
   ArrowRight,
   LockKeyhole,
+  CalendarClock,
 } from "lucide-react";
 
 const statusConfig = {
@@ -204,6 +205,20 @@ export default async function StudentTestsPage({
                     </div>
                     <span className="tabular-nums">{test.totalMarks} marks</span>
                   </div>
+
+                  {/* Start time */}
+                  {test.startTime && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <CalendarClock className="size-3 shrink-0" aria-hidden="true" />
+                      <span>
+                        Starts: {new Date(test.startTime).toLocaleString("en-IN", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                          timeZone: "Asia/Kolkata",
+                        })}
+                      </span>
+                    </div>
+                  )}
 
                   {/* Action */}
                   {isCompleted ? (

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-guard";
 import { redirect } from "next/navigation";
+import { buildEligibleStudentsWhere } from "@/lib/test-eligibility";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,15 +53,27 @@ export default async function TestResultsPage({
     redirect("/college/drives");
   }
 
-  const attempts = await prisma.testAttempt.findMany({
-    where: { testId },
-    include: {
-      student: {
-        select: { id: true, name: true, email: true },
+  const [attempts, eligibleStudents] = await Promise.all([
+    prisma.testAttempt.findMany({
+      where: { testId },
+      include: {
+        student: {
+          select: { id: true, name: true, email: true },
+        },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.user.findMany({
+      where: buildEligibleStudentsWhere(test, user.collegeId),
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
+
+  const attemptStudentIds = new Set(attempts.map((a) => a.studentId));
+  const absentStudents = eligibleStudents.filter(
+    (s) => !attemptStudentIds.has(s.id)
+  );
 
   function formatDuration(seconds: number | null): string {
     if (!seconds) return "--";
@@ -103,7 +116,7 @@ export default async function TestResultsPage({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {attempts.length === 0 ? (
+            {attempts.length === 0 && absentStudents.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={11}
@@ -113,115 +126,158 @@ export default async function TestResultsPage({
                 </TableCell>
               </TableRow>
             ) : (
-              attempts.map((attempt) => {
-                const passed =
-                  test.passingMarks > 0 &&
-                  attempt.score !== null &&
-                  attempt.score >= test.passingMarks;
-                const failed =
-                  test.passingMarks > 0 &&
-                  attempt.score !== null &&
-                  attempt.score < test.passingMarks;
+              <>
+                {attempts.map((attempt) => {
+                  const passed =
+                    test.passingMarks > 0 &&
+                    attempt.score !== null &&
+                    attempt.score >= test.passingMarks;
+                  const failed =
+                    test.passingMarks > 0 &&
+                    attempt.score !== null &&
+                    attempt.score < test.passingMarks;
 
-                return (
-                  <TableRow key={attempt.id}>
-                    <TableCell className="font-medium">
-                      {attempt.student.name}
+                  return (
+                    <TableRow key={attempt.id}>
+                      <TableCell className="font-medium">
+                        {attempt.student.name}
+                      </TableCell>
+                      <TableCell>{attempt.student.email}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            attempt.status === "SUBMITTED"
+                              ? "default"
+                              : attempt.status === "TIMED_OUT"
+                                ? "destructive"
+                                : "secondary"
+                          }
+                        >
+                          {attempt.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attempt.score !== null
+                          ? attempt.score
+                          : "--"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attempt.totalMarks !== null
+                          ? attempt.totalMarks
+                          : "--"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attempt.percentage !== null
+                          ? `${attempt.percentage.toFixed(1)}%`
+                          : "--"}
+                      </TableCell>
+                      <TableCell>
+                        {formatDuration(attempt.timeTakenSeconds)}
+                      </TableCell>
+                      <TableCell>
+                        {attempt.submittedAt
+                          ? format(
+                              new Date(attempt.submittedAt),
+                              "MMM d, yyyy HH:mm"
+                            )
+                          : "--"}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {attempt.totalViolations > 0 ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge
+                                  variant="destructive"
+                                  className="cursor-help"
+                                >
+                                  {attempt.totalViolations}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-xs space-y-1">
+                                  <p>Tab switches: {attempt.tabSwitchCount}</p>
+                                  <p>Fullscreen exits: {attempt.fullscreenExitCount}</p>
+                                  <p>Copy/paste attempts: {attempt.copyPasteAttempts}</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                        {attempt.autoSubmitted && (
+                          <Badge variant="outline" className="ml-1 text-xs border-red-300 text-red-600">
+                            Auto
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {attempt.status !== "SUBMITTED" &&
+                        attempt.status !== "TIMED_OUT" ? (
+                          <Badge variant="outline">Pending</Badge>
+                        ) : passed ? (
+                          <Badge variant="default">Pass</Badge>
+                        ) : failed ? (
+                          <Badge variant="destructive">Fail</Badge>
+                        ) : (
+                          <Badge variant="outline">N/A</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(attempt.status === "SUBMITTED" ||
+                          attempt.status === "TIMED_OUT") && (
+                          <RetakeButton
+                            attemptId={attempt.id}
+                            studentName={attempt.student.name}
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {absentStudents.map((student) => (
+                  <TableRow key={student.id} className="bg-muted/30">
+                    <TableCell className="font-medium text-muted-foreground">
+                      {student.name}
                     </TableCell>
-                    <TableCell>{attempt.student.email}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {student.email}
+                    </TableCell>
                     <TableCell>
                       <Badge
-                        variant={
-                          attempt.status === "SUBMITTED"
-                            ? "default"
-                            : attempt.status === "TIMED_OUT"
-                              ? "destructive"
-                              : "secondary"
-                        }
+                        variant="outline"
+                        className="border-amber-300 text-amber-700"
                       >
-                        {attempt.status}
+                        ABSENT
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
-                      {attempt.score !== null
-                        ? attempt.score
-                        : "--"}
+                    <TableCell className="text-center text-muted-foreground">
+                      --
                     </TableCell>
-                    <TableCell className="text-center">
-                      {attempt.totalMarks !== null
-                        ? attempt.totalMarks
-                        : "--"}
+                    <TableCell className="text-center text-muted-foreground">
+                      --
                     </TableCell>
-                    <TableCell className="text-center">
-                      {attempt.percentage !== null
-                        ? `${attempt.percentage.toFixed(1)}%`
-                        : "--"}
+                    <TableCell className="text-center text-muted-foreground">
+                      --
                     </TableCell>
-                    <TableCell>
-                      {formatDuration(attempt.timeTakenSeconds)}
+                    <TableCell className="text-muted-foreground">--</TableCell>
+                    <TableCell className="text-muted-foreground">--</TableCell>
+                    <TableCell className="text-center text-muted-foreground">
+                      --
                     </TableCell>
                     <TableCell>
-                      {attempt.submittedAt
-                        ? format(
-                            new Date(attempt.submittedAt),
-                            "MMM d, yyyy HH:mm"
-                          )
-                        : "--"}
+                      <Badge
+                        variant="outline"
+                        className="border-amber-300 text-amber-700"
+                      >
+                        Absent
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
-                      {attempt.totalViolations > 0 ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Badge
-                                variant="destructive"
-                                className="cursor-help"
-                              >
-                                {attempt.totalViolations}
-                              </Badge>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <div className="text-xs space-y-1">
-                                <p>Tab switches: {attempt.tabSwitchCount}</p>
-                                <p>Fullscreen exits: {attempt.fullscreenExitCount}</p>
-                                <p>Copy/paste attempts: {attempt.copyPasteAttempts}</p>
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : (
-                        <span className="text-muted-foreground">0</span>
-                      )}
-                      {attempt.autoSubmitted && (
-                        <Badge variant="outline" className="ml-1 text-xs border-red-300 text-red-600">
-                          Auto
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {attempt.status !== "SUBMITTED" &&
-                      attempt.status !== "TIMED_OUT" ? (
-                        <Badge variant="outline">Pending</Badge>
-                      ) : passed ? (
-                        <Badge variant="default">Pass</Badge>
-                      ) : failed ? (
-                        <Badge variant="destructive">Fail</Badge>
-                      ) : (
-                        <Badge variant="outline">N/A</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {(attempt.status === "SUBMITTED" ||
-                        attempt.status === "TIMED_OUT") && (
-                        <RetakeButton
-                          attemptId={attempt.id}
-                          studentName={attempt.student.name}
-                        />
-                      )}
-                    </TableCell>
+                    <TableCell />
                   </TableRow>
-                );
-              })
+                ))}
+              </>
             )}
           </TableBody>
         </Table>

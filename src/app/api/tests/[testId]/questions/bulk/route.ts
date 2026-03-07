@@ -84,20 +84,27 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const startOrder = (lastQuestion?.order ?? -1) + 1;
 
     const result = await prisma.$transaction(async (tx) => {
-      await tx.question.createMany({
-        data: questions.map((q, idx) => ({
-          testId,
-          questionText: q.questionText,
-          imageUrl: q.imageUrl || null,
-          questionType: q.questionType,
-          options: q.options,
-          correctOptionIds: q.correctOptionIds,
-          marks: q.marks,
-          negativeMarks: q.negativeMarks,
-          explanation: q.explanation,
-          order: startOrder + idx,
-        })),
-      });
+      // Create questions one by one to get IDs
+      const createdIds: string[] = [];
+      for (let idx = 0; idx < questions.length; idx++) {
+        const q = questions[idx];
+        const created = await tx.question.create({
+          data: {
+            testId,
+            questionText: q.questionText,
+            imageUrl: q.imageUrl || null,
+            questionType: q.questionType,
+            options: q.options,
+            correctOptionIds: q.correctOptionIds,
+            marks: q.marks,
+            negativeMarks: q.negativeMarks,
+            explanation: q.explanation,
+            order: startOrder + idx,
+          },
+          select: { id: true },
+        });
+        createdIds.push(created.id);
+      }
 
       // Recalculate totalMarks
       const allQuestions = await tx.question.findMany({
@@ -108,7 +115,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
       await tx.test.update({ where: { id: testId }, data: { totalMarks } });
 
-      return { created: questions.length, totalMarks };
+      return { created: questions.length, totalMarks, questionIds: createdIds };
     });
 
     return NextResponse.json(result, { status: 201 });

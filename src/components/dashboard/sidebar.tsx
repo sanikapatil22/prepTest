@@ -36,6 +36,7 @@ const collegeNav: NavItem[] = [
   { title: "Library", href: "/college/library", icon: BookOpen },
   { title: "Students", href: "/college/students", icon: GraduationCap },
   { title: "Departments", href: "/college/departments", icon: Building2 },
+  { title: "Reports", href: "/college/reports", icon: BarChart3 },
   { title: "Settings", href: "/college/settings", icon: Settings },
 ];
 
