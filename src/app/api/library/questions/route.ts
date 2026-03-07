@@ -26,6 +26,7 @@ const mcqSchema = z.object({
   explanation: z.string().optional(),
   category: z.string().min(1, "Category is required"),
   difficulty: z.nativeEnum(Difficulty).default("MEDIUM"),
+  scope: z.enum(["global", "private"]).default("global"),
 });
 
 const codingSchema = z.object({
@@ -37,6 +38,7 @@ const codingSchema = z.object({
   explanation: z.string().optional(),
   category: z.string().min(1, "Category is required"),
   difficulty: z.nativeEnum(Difficulty).default("MEDIUM"),
+  scope: z.enum(["global", "private"]).default("global"),
 });
 
 const createSchema = z.discriminatedUnion("questionType", [
@@ -53,7 +55,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { id: string; role: string };
+    const user = session.user as { id: string; role: string; collegeId: string | null };
     if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -63,20 +65,38 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get("difficulty");
     const type = searchParams.get("type");
     const search = searchParams.get("search");
+    const scope = searchParams.get("scope"); // "global" | "private"
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
 
-    const where: Record<string, unknown> = {};
-    if (category) where.category = category;
+    // Build AND conditions array for Prisma
+    const andConditions: Record<string, unknown>[] = [];
+
+    // Scope filter — default to "global" if not specified
+    const effectiveScope = scope || "global";
+    if (effectiveScope === "global") {
+      andConditions.push({ collegeId: { equals: null } });
+    } else if (effectiveScope === "private") {
+      if (user.role === "COLLEGE_ADMIN") {
+        andConditions.push({ collegeId: { equals: user.collegeId } });
+      } else {
+        // SUPER_ADMIN sees all private questions
+        andConditions.push({ NOT: { collegeId: { equals: null } } });
+      }
+    }
+
+    if (category) andConditions.push({ category });
     if (difficulty && Object.values(Difficulty).includes(difficulty as Difficulty)) {
-      where.difficulty = difficulty;
+      andConditions.push({ difficulty });
     }
     if (type && Object.values(QuestionType).includes(type as QuestionType)) {
-      where.questionType = type;
+      andConditions.push({ questionType: type });
     }
     if (search) {
-      where.questionText = { contains: search, mode: "insensitive" };
+      andConditions.push({ questionText: { contains: search, mode: "insensitive" } });
     }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [questions, total] = await Promise.all([
       prisma.libraryQuestion.findMany({
@@ -86,6 +106,7 @@ export async function GET(request: NextRequest) {
         take: limit,
         include: {
           createdBy: { select: { name: true } },
+          college: { select: { name: true } },
           testCases: true,
         },
       }),
@@ -113,8 +134,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { id: string; role: string };
-    if (user.role !== "SUPER_ADMIN") {
+    const user = session.user as { id: string; role: string; collegeId: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -129,6 +150,18 @@ export async function POST(request: NextRequest) {
 
     const data = parsed.data;
     const isCoding = data.questionType === "CODING";
+
+    // Determine collegeId based on scope
+    let collegeId: string | null = null;
+    if (data.scope === "private") {
+      if (user.role !== "COLLEGE_ADMIN" || !user.collegeId) {
+        return NextResponse.json(
+          { error: "Only college admins can create private questions" },
+          { status: 403 }
+        );
+      }
+      collegeId = user.collegeId;
+    }
 
     // Validate correctOptionIds for MCQ
     if (!isCoding) {
@@ -155,6 +188,7 @@ export async function POST(request: NextRequest) {
           explanation: data.explanation,
           category: data.category,
           difficulty: data.difficulty,
+          collegeId,
           createdById: user.id,
         },
         include: { testCases: true },

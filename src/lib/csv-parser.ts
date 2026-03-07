@@ -322,8 +322,8 @@ export function parseEligibilityCSV(text: string): {
  */
 export function generateCSVTemplate(): string {
   const header = [...EXPECTED_HEADERS, "image_url"].join(",");
-  const mcq1 = `"What is 2+2?","1","2","3","4","4",SINGLE_SELECT,1,0,"",""`;
-  const mcq2 = `"Select all prime numbers","2","3","4","5","1;2;4",MULTI_SELECT,2,0.5,"2, 3, and 5 are prime",""`;
-  const coding = `"What is the output of the following Python code? print(2 + 2)","2","4","6","8","2",CODING,2,0,"print() outputs 4",""`;
+  const mcq1 = `"What is 2+2?","1","2","3","4","4","SINGLE_SELECT","1","0","",""`;
+  const mcq2 = `"Select all prime numbers","2","3","4","5","1;2;4","MULTI_SELECT","2","0.5","2 3 and 5 are prime",""`;
+  const coding = `"What is the output of the following Python code? print(2 + 2)","2","4","6","8","2","CODING","2","0","print() outputs 4",""`;
   return `${header}\n${mcq1}\n${mcq2}\n${coding}\n`;
 }

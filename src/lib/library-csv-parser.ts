@@ -77,18 +77,20 @@ export function parseLibraryQuestionsCSV(text: string): {
       continue;
     }
 
-    // Difficulty defaults to MEDIUM
+    // Difficulty is required
     const rawDifficulty = row[colIndex("difficulty")]?.toUpperCase().trim();
-    let difficulty: "EASY" | "MEDIUM" | "HARD" = "MEDIUM";
-    if (rawDifficulty === "EASY" || rawDifficulty === "HARD") {
-      difficulty = rawDifficulty;
-    } else if (rawDifficulty && rawDifficulty !== "MEDIUM") {
+    if (!rawDifficulty) {
+      errors.push({ row: rowNum, message: "Difficulty is required (EASY, MEDIUM, or HARD)" });
+      continue;
+    }
+    if (rawDifficulty !== "EASY" && rawDifficulty !== "MEDIUM" && rawDifficulty !== "HARD") {
       errors.push({
         row: rowNum,
         message: `Invalid difficulty "${rawDifficulty}". Use EASY, MEDIUM, or HARD`,
       });
       continue;
     }
+    const difficulty: "EASY" | "MEDIUM" | "HARD" = rawDifficulty;
 
     // Collect non-empty options
     const optionTexts: { index: number; text: string }[] = [];
@@ -196,7 +198,7 @@ export function parseLibraryQuestionsCSV(text: string): {
  */
 export function generateLibraryCSVTemplate(): string {
   const header = EXPECTED_HEADERS.join(",");
-  const example1 = `"What is 2+2?","1","2","3","4","4",SINGLE_SELECT,1,0,"","Math",EASY`;
-  const example2 = `"Select all prime numbers","2","3","4","5","1;2;4",MULTI_SELECT,2,0.5,"2, 3, and 5 are prime","Math",MEDIUM`;
+  const example1 = `"What is 2+2?","1","2","3","4","4","SINGLE_SELECT","1","0","","Math","EASY"`;
+  const example2 = `"Select all prime numbers","2","3","4","5","1;2;4","MULTI_SELECT","2","0.5","2 3 and 5 are prime","Math","MEDIUM"`;
   return `${header}\n${example1}\n${example2}\n`;
 }

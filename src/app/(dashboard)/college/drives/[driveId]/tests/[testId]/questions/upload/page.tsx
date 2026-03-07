@@ -32,7 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Download, Loader2, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Download, Globe, Loader2, Lock, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import {
   parseQuestionsCSV,
   generateCSVTemplate,
@@ -41,7 +41,7 @@ import {
 } from "@/lib/csv-parser";
 import { fileToCSVText } from "@/lib/spreadsheet";
 
-type Phase = "select" | "preview" | "uploading";
+type Phase = "select" | "preview" | "uploading" | "save-to-library";
 
 let optCounter = 0;
 function newOptId() { optCounter += 1; return `opt_${Date.now()}_${optCounter}`; }
@@ -57,6 +57,15 @@ export default function BulkUploadPage() {
   // Edit dialog state
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editQ, setEditQ] = useState<CSVQuestion | null>(null);
+
+  // Save to library state
+  const [uploadedQuestionIds, setUploadedQuestionIds] = useState<string[]>([]);
+  const [selectedForLibrary, setSelectedForLibrary] = useState<Set<number>>(new Set());
+  const [libraryScope, setLibraryScope] = useState<"global" | "private">("private");
+  const [libraryCategory, setLibraryCategory] = useState("");
+  const [libraryDifficulty, setLibraryDifficulty] = useState("MEDIUM");
+  const [isSavingToLibrary, setIsSavingToLibrary] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
 
   async function handleDownloadTemplate(format: "csv" | "xlsx") {
     const csv = generateCSVTemplate();
@@ -100,10 +109,84 @@ export default function BulkUploadPage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Upload failed"); }
       const data = await res.json();
       toast.success(`${data.created} questions uploaded successfully`);
-      router.push(`/college/drives/${params.driveId}/tests/${params.testId}`);
+
+      // Fetch the created question IDs for potential library save
+      if (data.questionIds && data.questionIds.length > 0) {
+        setUploadedQuestionIds(data.questionIds);
+      }
+
+      // Fetch categories for the library save dialog
+      fetch("/api/library/categories")
+        .then((r) => r.ok ? r.json() : [])
+        .then((cats) => setCategories(Array.isArray(cats) ? cats : []))
+        .catch(() => {});
+
+      setPhase("save-to-library");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Something went wrong");
       setPhase("preview");
+    }
+  }
+
+  function toggleLibrarySelection(idx: number) {
+    setSelectedForLibrary((prev) => {
+      const next = new Set(prev);
+      if (next.has(idx)) next.delete(idx); else next.add(idx);
+      return next;
+    });
+  }
+
+  function toggleAllForLibrary() {
+    if (selectedForLibrary.size === questions.length) {
+      setSelectedForLibrary(new Set());
+    } else {
+      setSelectedForLibrary(new Set(questions.map((_, i) => i)));
+    }
+  }
+
+  async function handleSaveToLibrary() {
+    if (selectedForLibrary.size === 0 || !libraryCategory.trim()) {
+      toast.error("Select questions and enter a category");
+      return;
+    }
+
+    setIsSavingToLibrary(true);
+    try {
+      // Use the uploaded question IDs if available, otherwise skip
+      const selectedIds = uploadedQuestionIds.length > 0
+        ? Array.from(selectedForLibrary).map((i) => uploadedQuestionIds[i]).filter(Boolean)
+        : [];
+
+      if (selectedIds.length === 0) {
+        toast.error("Could not identify uploaded questions. Please add them to the library manually.");
+        router.push(`/college/drives/${params.driveId}/tests/${params.testId}`);
+        return;
+      }
+
+      const res = await fetch("/api/library/questions/from-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          testId: params.testId,
+          questionIds: selectedIds,
+          scope: libraryScope,
+          category: libraryCategory,
+          difficulty: libraryDifficulty,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to save to library");
+      }
+
+      const data = await res.json();
+      toast.success(`${data.saved} question${data.saved !== 1 ? "s" : ""} saved to ${libraryScope} library`);
+      router.push(`/college/drives/${params.driveId}/tests/${params.testId}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsSavingToLibrary(false);
     }
   }
 
@@ -262,6 +345,111 @@ export default function BulkUploadPage() {
             <div className="text-center space-y-3">
               <Loader2 className="size-8 animate-spin mx-auto text-muted-foreground" />
               <p className="text-muted-foreground">Uploading {questions.length} question{questions.length !== 1 ? "s" : ""}...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Phase 4: Save to Library */}
+      {phase === "save-to-library" && (
+        <Card className="max-w-2xl">
+          <CardHeader>
+            <CardTitle>Save to Question Library?</CardTitle>
+            <CardDescription>
+              Would you like to save some of the uploaded questions to the question library for future reuse?
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {/* Question selection */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label>Select Questions</Label>
+                <Button type="button" variant="outline" size="sm" onClick={toggleAllForLibrary}>
+                  {selectedForLibrary.size === questions.length ? "Deselect All" : "Select All"}
+                </Button>
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-1 rounded-md border p-2">
+                {questions.map((q, i) => (
+                  <label key={i} className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-muted cursor-pointer">
+                    <Checkbox
+                      checked={selectedForLibrary.has(i)}
+                      onCheckedChange={() => toggleLibrarySelection(i)}
+                    />
+                    <span className="text-sm truncate flex-1">{q.questionText.length > 80 ? q.questionText.substring(0, 80) + "..." : q.questionText}</span>
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {q.questionType === "CODING" ? "Coding" : q.questionType === "SINGLE_SELECT" ? "Single" : "Multi"}
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+              {selectedForLibrary.size > 0 && (
+                <p className="text-xs text-muted-foreground">{selectedForLibrary.size} question{selectedForLibrary.size !== 1 ? "s" : ""} selected</p>
+              )}
+            </div>
+
+            {selectedForLibrary.size > 0 && (
+              <>
+                {/* Scope */}
+                <div className="space-y-2">
+                  <Label>Library Scope</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant={libraryScope === "global" ? "default" : "outline"} size="sm" onClick={() => setLibraryScope("global")}>
+                      <Globe className="size-3.5 mr-1.5" />Global
+                    </Button>
+                    <Button type="button" variant={libraryScope === "private" ? "default" : "outline"} size="sm" onClick={() => setLibraryScope("private")}>
+                      <Lock className="size-3.5 mr-1.5" />Private
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {libraryScope === "global" ? "Visible to all college admins." : "Only visible to your college."}
+                  </p>
+                </div>
+
+                {/* Category & Difficulty */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Category <span className="text-destructive">*</span></Label>
+                    {categories.length > 0 ? (
+                      <Select value={libraryCategory} onValueChange={setLibraryCategory}>
+                        <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input value={libraryCategory} onChange={(e) => setLibraryCategory(e.target.value)} placeholder="e.g. Math, DSA" />
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Difficulty <span className="text-destructive">*</span></Label>
+                    <Select value={libraryDifficulty} onValueChange={setLibraryDifficulty}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EASY">Easy</SelectItem>
+                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                        <SelectItem value="HARD">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/college/drives/${params.driveId}/tests/${params.testId}`)}
+              >
+                Skip
+              </Button>
+              {selectedForLibrary.size > 0 && (
+                <Button onClick={handleSaveToLibrary} disabled={isSavingToLibrary || !libraryCategory.trim()}>
+                  {isSavingToLibrary && <Loader2 className="mr-2 size-4 animate-spin" />}
+                  Save {selectedForLibrary.size} to Library
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

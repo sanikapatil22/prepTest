@@ -80,7 +80,8 @@ export default function EditLibraryQuestionPage() {
   const [explanation, setExplanation] = useState("");
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState("MEDIUM");
-  const [categories, setCategories] = useState<string[]>([]);
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string; isGlobal: boolean }[]>([]);
 
   const [testCases, setTestCases] = useState<TestCaseData[]>([]);
 
@@ -112,7 +113,12 @@ export default function EditLibraryQuestionPage() {
         }
 
         if (catRes.ok) {
-          setCategories(await catRes.json());
+          const cats = await catRes.json();
+          const catList = Array.isArray(cats) ? cats : [];
+          setCategories(catList);
+          if (catList.length === 0 || !catList.some((c: { name: string }) => c.name === q.category)) {
+            setUseCustomCategory(true);
+          }
         }
       } catch (error) {
         toast.error(error instanceof Error ? error.message : "Failed to load question");
@@ -306,18 +312,37 @@ export default function EditLibraryQuestionPage() {
                 <Label>
                   Category <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g. Math, DSA, DBMS"
-                  list="category-suggestions"
-                  required
-                />
-                <datalist id="category-suggestions">
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat} />
-                  ))}
-                </datalist>
+                {categories.length > 0 && !useCustomCategory ? (
+                  <div className="space-y-1.5">
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => { setUseCustomCategory(true); setCategory(""); }}>
+                      Or type a custom category
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Input
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      placeholder="e.g. Math, DSA, DBMS"
+                      required
+                    />
+                    {categories.length > 0 && (
+                      <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => { setUseCustomCategory(false); setCategory(""); }}>
+                        Select from existing categories
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Difficulty</Label>

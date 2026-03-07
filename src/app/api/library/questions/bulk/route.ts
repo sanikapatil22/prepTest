@@ -26,6 +26,7 @@ const bulkRequestSchema = z.object({
     .array(bulkQuestionSchema)
     .min(1, "At least 1 question is required")
     .max(100, "Maximum 100 questions per upload"),
+  scope: z.enum(["global", "private"]).default("global"),
 });
 
 // POST /api/library/questions/bulk — bulk create library questions from CSV
@@ -36,8 +37,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { id: string; role: string };
-    if (user.role !== "SUPER_ADMIN") {
+    const user = session.user as { id: string; role: string; collegeId: string | null };
+    if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -50,7 +51,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { questions } = parsed.data;
+    const { questions, scope } = parsed.data;
+
+    // Determine collegeId based on scope
+    let collegeId: string | null = null;
+    if (scope === "private") {
+      if (user.role !== "COLLEGE_ADMIN" || !user.collegeId) {
+        return NextResponse.json(
+          { error: "Only college admins can create private questions" },
+          { status: 403 }
+        );
+      }
+      collegeId = user.collegeId;
+    }
 
     const result = await prisma.$transaction(async (tx) => {
       await tx.libraryQuestion.createMany({
@@ -64,6 +77,7 @@ export async function POST(request: NextRequest) {
           explanation: q.explanation,
           category: q.category,
           difficulty: q.difficulty,
+          collegeId,
           createdById: user.id,
         })),
       });

@@ -32,6 +32,19 @@ const updateSchema = z.object({
 
 type RouteParams = { params: Promise<{ questionId: string }> };
 
+function canAccess(
+  userRole: string,
+  userCollegeId: string | null,
+  questionCollegeId: string | null
+): boolean {
+  if (userRole === "SUPER_ADMIN") return true;
+  if (userRole === "COLLEGE_ADMIN") {
+    // College admin can access global questions and their own private questions
+    return questionCollegeId === null || questionCollegeId === userCollegeId;
+  }
+  return false;
+}
+
 // GET /api/library/questions/[questionId]
 export async function GET(_request: NextRequest, { params }: RouteParams) {
   try {
@@ -42,7 +55,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { role: string };
+    const user = session.user as { role: string; collegeId: string | null };
     if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -52,11 +65,16 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       include: {
         testCases: { orderBy: { order: "asc" } },
         createdBy: { select: { name: true } },
+        college: { select: { name: true } },
       },
     });
 
     if (!question) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    if (!canAccess(user.role, user.collegeId, question.collegeId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     return NextResponse.json(question);
@@ -76,7 +94,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { role: string };
+    const user = session.user as { role: string; collegeId: string | null };
     if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -84,6 +102,10 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.libraryQuestion.findUnique({ where: { id: questionId } });
     if (!existing) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    if (!canAccess(user.role, user.collegeId, existing.collegeId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -151,7 +173,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = session.user as { role: string };
+    const user = session.user as { role: string; collegeId: string | null };
     if (user.role !== "SUPER_ADMIN" && user.role !== "COLLEGE_ADMIN") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -159,6 +181,10 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     const existing = await prisma.libraryQuestion.findUnique({ where: { id: questionId } });
     if (!existing) {
       return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
+
+    if (!canAccess(user.role, user.collegeId, existing.collegeId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await prisma.libraryQuestion.delete({ where: { id: questionId } });

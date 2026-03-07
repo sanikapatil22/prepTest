@@ -68,8 +68,9 @@ export default function NewLibraryQuestionPage() {
   const [explanation, setExplanation] = useState("");
   const [category, setCategory] = useState("");
   const [difficulty, setDifficulty] = useState("MEDIUM");
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
 
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; isGlobal: boolean }[]>([]);
 
   const [testCases, setTestCases] = useState<TestCaseInput[]>([
     { id: generateTestCaseId(), input: "", expectedOutput: "", isSample: true },
@@ -79,8 +80,8 @@ export default function NewLibraryQuestionPage() {
 
   useEffect(() => {
     fetch("/api/library/categories")
-      .then((res) => res.json())
-      .then((cats: string[]) => setCategories(cats))
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((cats: { id: string; name: string; isGlobal: boolean }[]) => setCategories(Array.isArray(cats) ? cats : []))
       .catch(() => {});
   }, []);
 
@@ -178,6 +179,7 @@ export default function NewLibraryQuestionPage() {
         explanation: explanation || undefined,
         category,
         difficulty,
+        scope: "global",
       };
     } else {
       const filledOptions = options.filter((o) => o.text.trim());
@@ -202,6 +204,7 @@ export default function NewLibraryQuestionPage() {
         explanation: explanation || undefined,
         category,
         difficulty,
+        scope: "global",
       };
     }
 
@@ -271,18 +274,37 @@ export default function NewLibraryQuestionPage() {
                 <Label>
                   Category <span className="text-destructive">*</span>
                 </Label>
-                <Input
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g. Math, DSA, DBMS"
-                  list="category-suggestions"
-                  required
-                />
-                <datalist id="category-suggestions">
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat} />
-                  ))}
-                </datalist>
+                {categories.length > 0 && !useCustomCategory ? (
+                  <div className="space-y-1.5">
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => { setUseCustomCategory(true); setCategory(""); }}>
+                      Or type a custom category
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    <Input
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      placeholder="e.g. Math, DSA, DBMS"
+                      required
+                    />
+                    {categories.length > 0 && (
+                      <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => { setUseCustomCategory(false); setCategory(""); }}>
+                        Select from existing categories
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">

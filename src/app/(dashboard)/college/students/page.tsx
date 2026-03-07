@@ -13,6 +13,10 @@ import {
   ArrowUpCircle,
   GraduationCap,
   Users,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +56,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+
+const PAGE_SIZE = 15;
 
 const dateFormatter = new Intl.DateTimeFormat("en", {
   month: "short",
@@ -105,6 +111,8 @@ export default function StudentsListPage() {
   const graduatedFilter = searchParams.get("graduated") ?? "all";
   const usnSearch = searchParams.get("q") ?? "";
 
+  const [currentPage, setCurrentPage] = useState(1);
+
   function setParam(key: string, value: string) {
     const params = new URLSearchParams(searchParams.toString());
     if (!value || value === "all") {
@@ -113,6 +121,7 @@ export default function StudentsListPage() {
       params.set(key, value);
     }
     router.replace(`?${params.toString()}`);
+    setCurrentPage(1);
   }
 
   const [promoteDialogOpen, setPromoteDialogOpen] = useState(false);
@@ -308,6 +317,11 @@ export default function StudentsListPage() {
         s.usn?.toLowerCase().includes(usnSearch.toLowerCase())
       )
     : students;
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIdx = (safePage - 1) * PAGE_SIZE;
+  const paginatedStudents = filteredStudents.slice(startIdx, startIdx + PAGE_SIZE);
 
   const allSelected =
     filteredStudents.length > 0 && selected.size === filteredStudents.length;
@@ -552,7 +566,7 @@ export default function StudentsListPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredStudents.map((student) => (
+                paginatedStudents.map((student) => (
                   <TableRow key={student.id}>
                     <TableCell className="px-4">
                       <Checkbox
@@ -641,6 +655,58 @@ export default function StudentsListPage() {
           </Table>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {startIdx + 1}&ndash;
+            {Math.min(startIdx + PAGE_SIZE, filteredStudents.length)} of{" "}
+            {filteredStudents.length} students
+          </p>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setCurrentPage(1)}
+              disabled={safePage === 1}
+            >
+              <ChevronsLeft className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setCurrentPage(safePage - 1)}
+              disabled={safePage === 1}
+            >
+              <ChevronLeft className="size-4" />
+            </Button>
+            <span className="px-3 text-sm font-medium tabular-nums">
+              {safePage} / {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setCurrentPage(safePage + 1)}
+              disabled={safePage === totalPages}
+            >
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="size-8"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={safePage === totalPages}
+            >
+              <ChevronsRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Selected Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -138,9 +138,11 @@ model College {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  users           User[]
-  placementDrives PlacementDrive[]
-  departments     Department[]
+  users            User[]
+  placementDrives  PlacementDrive[]
+  departments      Department[]
+  categories       Category[]
+  libraryQuestions LibraryQuestion[]
 }
 
 model PlacementDrive {
@@ -276,6 +278,18 @@ model TestCase {
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  collegeId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  college   College? @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+
+  @@unique([name, collegeId])
+}
+
 model LibraryQuestion {
   id               String       @id @default(cuid())
   questionText     String
@@ -287,10 +301,12 @@ model LibraryQuestion {
   explanation      String?
   category         String
   difficulty       Difficulty   @default(MEDIUM)
+  collegeId        String?      // null = global, non-null = private (college-specific)
   createdById      String
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
+  college          College?            @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   createdBy        User                @relation(fields: [createdById], references: [id])
   testCases        LibraryTestCase[]
 }
