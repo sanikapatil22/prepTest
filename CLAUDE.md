@@ -31,6 +31,7 @@ Judge0 (code execution engine for coding questions):
 ```bash
 docker compose up -d   # Start Judge0 services (server, workers, postgres, redis)
 ```
+Judge0 config is in `judge0.conf` (referenced by `docker-compose.yml`).
 
 ## Architecture
 
@@ -61,6 +62,7 @@ docker compose up -d   # Start Judge0 services (server, workers, postgres, redis
 - `src/lib/student-csv-parser.ts` — CSV parsing for bulk student import with USN-based department extraction
 - `src/lib/library-csv-parser.ts` — CSV parsing for question library bulk upload (adds `category` and `difficulty` columns)
 - `src/middleware.ts` — Route protection; checks `better-auth.session_token` cookie, redirects unauthenticated users to `/login`
+- `src/lib/spreadsheet.ts` — Converts Excel (.xlsx/.xls) and CSV files to CSV text strings for the CSV parsers
 - `src/hooks/use-proctoring.ts` — Client-side proctoring hook tracking tab switches, fullscreen exits, copy/paste. Auto-submits when `maxViolations` threshold is reached. Allows copy/paste within `.monaco-editor`.
 
 ### Database Schema
@@ -68,7 +70,7 @@ Defined in `prisma/schema.prisma`. Prisma client output goes to `src/generated/p
 
 Key models: User, College, Department, PlacementDrive, Test, Question, TestAttempt, Answer, TestCase, LibraryQuestion, LibraryTestCase.
 
-Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_SELECT, MULTI_SELECT, CODING), `DriveStatus` (DRAFT, UPCOMING, ACTIVE, COMPLETED, CANCELLED), `TestStatus` (DRAFT, PUBLISHED, CLOSED), `AttemptStatus` (IN_PROGRESS, SUBMITTED, TIMED_OUT), `CodingLanguage` (PYTHON, JAVA, C, CPP), `Difficulty` (EASY, MEDIUM, HARD).
+Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_SELECT, MULTI_SELECT, CODING), `DriveStatus` (DRAFT, UPCOMING, ACTIVE, COMPLETED, CANCELLED), `TestStatus` (DRAFT, PUBLISHED, CLOSED), `AttemptStatus` (IN_PROGRESS, SUBMITTED, TIMED_OUT), `CodingLanguage` (PYTHON, JAVA, C, CPP), `Difficulty` (EASY, MEDIUM, HARD), `ResultVisibility` (AFTER_SUBMISSION, MANUAL_RELEASE).
 
 **JSON field patterns:** Question `options` stores `Array<{id: string, text: string}>`, `correctOptionIds` stores `string[]`. Answer `selectedOptionIds` follows the same `string[]` pattern.
 
@@ -101,7 +103,7 @@ Key enums: `Role` (SUPER_ADMIN, COLLEGE_ADMIN, STUDENT), `QuestionType` (SINGLE_
 
 Key API endpoints:
 - `/api/auth/**` — Better Auth + custom `/register-college-admin`, `/register-student`
-- `/api/colleges` — CRUD + `/usn-structure` (reads college from auth session, no collegeId param)
+- `/api/colleges` — CRUD + `/usn-structure` (reads college from auth session, no collegeId param) + `[collegeId]/stats`
 - `/api/departments` — CRUD scoped to college
 - `/api/drives` — CRUD for placement drives
 - `/api/tests` — CRUD + `[testId]/questions` (CRUD + bulk), `[testId]/start`, `[testId]/submit`, `[testId]/monitor`

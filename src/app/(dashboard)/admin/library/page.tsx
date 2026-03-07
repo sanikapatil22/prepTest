@@ -39,7 +39,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Plus, Trash2, Upload, Search, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Loader2, Plus, Trash2, Upload, Search, Pencil, Tag, Check, X } from "lucide-react";
 
 interface LibraryQuestion {
   id: string;
@@ -59,6 +69,12 @@ interface PaginatedResponse {
   totalPages: number;
 }
 
+interface CategoryItem {
+  id: string;
+  name: string;
+  isGlobal: boolean;
+}
+
 const difficultyColor: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   EASY: "secondary",
   MEDIUM: "default",
@@ -72,7 +88,14 @@ export default function AdminLibraryPage() {
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   // Derive filter + pagination state from URL
   const search = searchParams.get("search") ?? "";
@@ -119,12 +142,86 @@ export default function AdminLibraryPage() {
     fetchQuestions();
   }, [fetchQuestions]);
 
-  useEffect(() => {
+  const fetchCategories = useCallback(() => {
     fetch("/api/library/categories")
-      .then((res) => res.json())
-      .then((cats: string[]) => setCategories(cats))
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((cats: CategoryItem[]) => setCategories(Array.isArray(cats) ? cats : []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  async function handleAddCategory() {
+    if (!newCategoryName.trim()) return;
+    setIsAddingCategory(true);
+    try {
+      const res = await fetch("/api/library/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategoryName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to add category");
+      }
+      toast.success("Category added");
+      setNewCategoryName("");
+      fetchCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsAddingCategory(false);
+    }
+  }
+
+  async function handleDeleteCategory(categoryId: string) {
+    setDeletingCategoryId(categoryId);
+    try {
+      const res = await fetch(`/api/library/categories/${categoryId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to delete category");
+      }
+      toast.success("Category deleted");
+      fetchCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setDeletingCategoryId(null);
+    }
+  }
+
+  function startEditingCategory(cat: CategoryItem) {
+    setEditingCategoryId(cat.id);
+    setEditingCategoryName(cat.name);
+  }
+
+  async function handleSaveCategory() {
+    if (!editingCategoryId || !editingCategoryName.trim()) return;
+    setIsSavingCategory(true);
+    try {
+      const res = await fetch(`/api/library/categories/${editingCategoryId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editingCategoryName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update category");
+      }
+      toast.success("Category updated");
+      setEditingCategoryId(null);
+      fetchCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsSavingCategory(false);
+    }
+  }
 
   async function handleDelete(questionId: string) {
     setDeletingId(questionId);
@@ -152,6 +249,100 @@ export default function AdminLibraryPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Tag />
+                Categories
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Manage Categories</DialogTitle>
+                <DialogDescription>
+                  Add or remove global categories. These are available to all college admins.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-2">
+                <div className="flex gap-2">
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="New category name"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
+                  />
+                  <Button onClick={handleAddCategory} disabled={isAddingCategory || !newCategoryName.trim()}>
+                    {isAddingCategory ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                    Add
+                  </Button>
+                </div>
+                <div className="max-h-60 overflow-y-auto space-y-1">
+                  {categories.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">No categories yet.</p>
+                  ) : (
+                    categories.map((cat) => (
+                      <div key={cat.id} className="flex items-center justify-between rounded-md border px-3 py-2 gap-2">
+                        {editingCategoryId === cat.id ? (
+                          <>
+                            <Input
+                              value={editingCategoryName}
+                              onChange={(e) => setEditingCategoryName(e.target.value)}
+                              className="h-7 text-sm"
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveCategory(); } if (e.key === "Escape") setEditingCategoryId(null); }}
+                              autoFocus
+                            />
+                            <div className="flex gap-1 shrink-0">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleSaveCategory} disabled={isSavingCategory || !editingCategoryName.trim()}>
+                                {isSavingCategory ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditingCategoryId(null)}>
+                                <X className="size-3.5" />
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-sm">{cat.name}</span>
+                            <div className="flex gap-1 shrink-0">
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => startEditingCategory(cat)}>
+                                <Pencil className="size-3.5" />
+                              </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 w-7 p-0">
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Delete &quot;{cat.name}&quot;? Existing questions with this category won&apos;t be affected.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteCategory(cat.id)}
+                                      disabled={deletingCategoryId === cat.id}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      {deletingCategoryId === cat.id && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" asChild>
             <Link href="/admin/library/upload">
               <Upload />
@@ -190,8 +381,8 @@ export default function AdminLibraryPage() {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
+                  <SelectItem key={cat.id} value={cat.name}>
+                    {cat.name}
                   </SelectItem>
                 ))}
               </SelectContent>
