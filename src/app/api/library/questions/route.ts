@@ -69,39 +69,34 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
 
-    const where: Record<string, unknown> = {};
+    // Build AND conditions array for Prisma
+    const andConditions: Record<string, unknown>[] = [];
 
-    // Scope filter
-    if (scope === "global") {
-      where.collegeId = null;
-    } else if (scope === "private") {
+    // Scope filter — default to "global" if not specified
+    const effectiveScope = scope || "global";
+    if (effectiveScope === "global") {
+      andConditions.push({ collegeId: { equals: null } });
+    } else if (effectiveScope === "private") {
       if (user.role === "COLLEGE_ADMIN") {
-        where.collegeId = user.collegeId;
+        andConditions.push({ collegeId: { equals: user.collegeId } });
       } else {
         // SUPER_ADMIN sees all private questions
-        where.collegeId = { not: null };
+        andConditions.push({ NOT: { collegeId: { equals: null } } });
       }
-    } else {
-      // No scope filter: show accessible questions
-      if (user.role === "COLLEGE_ADMIN") {
-        where.OR = [
-          { collegeId: null },
-          { collegeId: user.collegeId },
-        ];
-      }
-      // SUPER_ADMIN sees everything by default
     }
 
-    if (category) where.category = category;
+    if (category) andConditions.push({ category });
     if (difficulty && Object.values(Difficulty).includes(difficulty as Difficulty)) {
-      where.difficulty = difficulty;
+      andConditions.push({ difficulty });
     }
     if (type && Object.values(QuestionType).includes(type as QuestionType)) {
-      where.questionType = type;
+      andConditions.push({ questionType: type });
     }
     if (search) {
-      where.questionText = { contains: search, mode: "insensitive" };
+      andConditions.push({ questionText: { contains: search, mode: "insensitive" } });
     }
+
+    const where = andConditions.length > 0 ? { AND: andConditions } : {};
 
     const [questions, total] = await Promise.all([
       prisma.libraryQuestion.findMany({
