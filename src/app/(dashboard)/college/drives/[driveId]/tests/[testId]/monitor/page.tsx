@@ -80,7 +80,7 @@ const statusBadge: Record<
   StudentStatus,
   { label: string; variant: "outline" | "secondary" | "default" | "destructive" }
 > = {
-  NOT_STARTED: { label: "Not Started", variant: "outline" },
+  NOT_STARTED: { label: "Absent", variant: "outline" },
   IN_PROGRESS: { label: "In Progress", variant: "secondary" },
   SUBMITTED: { label: "Submitted", variant: "default" },
   TIMED_OUT: { label: "Timed Out", variant: "destructive" },
@@ -221,7 +221,7 @@ export default function TestMonitorPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Not Started</CardTitle>
+            <CardTitle className="text-sm font-medium">Absent</CardTitle>
             <Clock className="size-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -274,7 +274,7 @@ export default function TestMonitorPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">All Statuses</SelectItem>
-            <SelectItem value="NOT_STARTED">Not Started</SelectItem>
+            <SelectItem value="NOT_STARTED">Absent</SelectItem>
             <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
             <SelectItem value="SUBMITTED">Submitted</SelectItem>
             <SelectItem value="TIMED_OUT">Timed Out</SelectItem>

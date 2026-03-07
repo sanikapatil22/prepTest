@@ -77,18 +77,20 @@ export function parseLibraryQuestionsCSV(text: string): {
       continue;
     }
 
-    // Difficulty defaults to MEDIUM
+    // Difficulty is required
     const rawDifficulty = row[colIndex("difficulty")]?.toUpperCase().trim();
-    let difficulty: "EASY" | "MEDIUM" | "HARD" = "MEDIUM";
-    if (rawDifficulty === "EASY" || rawDifficulty === "HARD") {
-      difficulty = rawDifficulty;
-    } else if (rawDifficulty && rawDifficulty !== "MEDIUM") {
+    if (!rawDifficulty) {
+      errors.push({ row: rowNum, message: "Difficulty is required (EASY, MEDIUM, or HARD)" });
+      continue;
+    }
+    if (rawDifficulty !== "EASY" && rawDifficulty !== "MEDIUM" && rawDifficulty !== "HARD") {
       errors.push({
         row: rowNum,
         message: `Invalid difficulty "${rawDifficulty}". Use EASY, MEDIUM, or HARD`,
       });
       continue;
     }
+    const difficulty: "EASY" | "MEDIUM" | "HARD" = rawDifficulty;
 
     // Collect non-empty options
     const optionTexts: { index: number; text: string }[] = [];

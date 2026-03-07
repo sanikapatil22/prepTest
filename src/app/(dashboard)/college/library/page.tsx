@@ -50,7 +50,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import Link from "next/link";
-import { Loader2, Search, BookOpen, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Search, BookOpen, Pencil, Trash2, Tag, Plus, Check, X } from "lucide-react";
 
 interface LibraryQuestion {
   id: string;
@@ -75,6 +75,12 @@ interface TestOption {
   drive: { title: string };
 }
 
+interface CategoryItem {
+  id: string;
+  name: string;
+  isGlobal: boolean;
+}
+
 const difficultyColor: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
   EASY: "secondary",
   MEDIUM: "default",
@@ -87,8 +93,15 @@ export default function CollegeLibraryPage() {
 
   const [data, setData] = useState<PaginatedResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [deletingCategoryId, setDeletingCategoryId] = useState<string | null>(null);
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState("");
+  const [isSavingCategory, setIsSavingCategory] = useState(false);
 
   // Transient UI state — not URL-synced
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -141,12 +154,86 @@ export default function CollegeLibraryPage() {
     fetchQuestions();
   }, [fetchQuestions]);
 
-  useEffect(() => {
+  const fetchCategories = useCallback(() => {
     fetch("/api/library/categories")
-      .then((res) => res.json())
-      .then((cats: string[]) => setCategories(cats))
+      .then((res) => res.ok ? res.json() : Promise.reject())
+      .then((cats: CategoryItem[]) => setCategories(Array.isArray(cats) ? cats : []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+
+  async function handleAddCategory() {
+    if (!newCategoryName.trim()) return;
+    setIsAddingCategory(true);
+    try {
+      const res = await fetch("/api/library/categories", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCategoryName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to add category");
+      }
+      toast.success("Category added");
+      setNewCategoryName("");
+      fetchCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsAddingCategory(false);
+    }
+  }
+
+  async function handleDeleteCategory(categoryId: string) {
+    setDeletingCategoryId(categoryId);
+    try {
+      const res = await fetch(`/api/library/categories/${categoryId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to delete category");
+      }
+      toast.success("Category deleted");
+      fetchCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setDeletingCategoryId(null);
+    }
+  }
+
+  function startEditingCategory(cat: CategoryItem) {
+    setEditingCategoryId(cat.id);
+    setEditingCategoryName(cat.name);
+  }
+
+  async function handleSaveCategory() {
+    if (!editingCategoryId || !editingCategoryName.trim()) return;
+    setIsSavingCategory(true);
+    try {
+      const res = await fetch(`/api/library/categories/${editingCategoryId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editingCategoryName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update category");
+      }
+      toast.success("Category updated");
+      setEditingCategoryId(null);
+      fetchCategories();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Something went wrong");
+    } finally {
+      setIsSavingCategory(false);
+    }
+  }
 
   // Fetch tests when dialog opens
   useEffect(() => {
@@ -234,6 +321,109 @@ export default function CollegeLibraryPage() {
             Browse shared questions and import them into your tests.
           </p>
         </div>
+        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+          <DialogTrigger asChild>
+            <Button variant="outline">
+              <Tag />
+              Categories
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Manage Categories</DialogTitle>
+              <DialogDescription>
+                Global categories (from super admin) are shared. You can add your own college-specific categories.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="flex gap-2">
+                <Input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="New category name"
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCategory(); } }}
+                />
+                <Button onClick={handleAddCategory} disabled={isAddingCategory || !newCategoryName.trim()}>
+                  {isAddingCategory ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                  Add
+                </Button>
+              </div>
+              <div className="max-h-60 overflow-y-auto space-y-1">
+                {categories.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">No categories yet.</p>
+                ) : (
+                  categories.map((cat) => (
+                    <div key={cat.id} className="flex items-center justify-between rounded-md border px-3 py-2 gap-2">
+                      {editingCategoryId === cat.id ? (
+                        <>
+                          <Input
+                            value={editingCategoryName}
+                            onChange={(e) => setEditingCategoryName(e.target.value)}
+                            className="h-7 text-sm"
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSaveCategory(); } if (e.key === "Escape") setEditingCategoryId(null); }}
+                            autoFocus
+                          />
+                          <div className="flex gap-1 shrink-0">
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={handleSaveCategory} disabled={isSavingCategory || !editingCategoryName.trim()}>
+                              {isSavingCategory ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                            </Button>
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setEditingCategoryId(null)}>
+                              <X className="size-3.5" />
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{cat.name}</span>
+                            {cat.isGlobal && (
+                              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Global</Badge>
+                            )}
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            {!cat.isGlobal && (
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => startEditingCategory(cat)}>
+                                <Pencil className="size-3.5" />
+                              </Button>
+                            )}
+                            {!cat.isGlobal && (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive h-7 w-7 p-0">
+                                    <Trash2 className="size-3.5" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Category</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Delete &quot;{cat.name}&quot;? Existing questions with this category won&apos;t be affected.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => handleDeleteCategory(cat.id)}
+                                      disabled={deletingCategoryId === cat.id}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      {deletingCategoryId === cat.id && <Loader2 className="mr-2 size-4 animate-spin" />}
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
         {selectedIds.size > 0 && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
@@ -304,7 +494,7 @@ export default function CollegeLibraryPage() {
               <SelectContent>
                 <SelectItem value="all">All Categories</SelectItem>
                 {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                  <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
